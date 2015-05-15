@@ -29,9 +29,9 @@ import java.util.ArrayList;
 public class home extends ActionBarActivity implements PlayerNotificationCallback, ConnectionStateCallback {
 
 
-    private static final String CLIENT_ID = "3e21eec6f57e4f6a9a2446c1beeb2051";
-    private static final String REDIRECT_URI = "javabox://callback";
-    private static final int REQUEST_CODE = 1337;
+    private static final String CLIENT_ID = "client id";
+    private static final String REDIRECT_URI = "callback";
+    private static final int REQUEST_CODE = 69;
     private Player mPlayer;
     Vinyl v;
     Track t;
