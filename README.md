@@ -1,6 +1,6 @@
 # javabox
 android spotify client
-ANDROID STUDIO
+ANDROID STUDIO APP DEV
 
 This is a project I've been working on with a friend of mine, Sam Britton. 
 The idea is that we'll work with Spotify API to pull data from Spotify servers to create an electronic "jukebox"
