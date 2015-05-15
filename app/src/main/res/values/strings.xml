@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">jukebox_dawood</string>
+
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="welcometext">Welcome back, user.</string>
+    <string name="serverKeyPrompt">Please enter the server key.</string>
+    <string name="enterKey">Enter.</string>
+    <string name="title_activity_home">home</string>
+    <string name="nowPlaying">Now Playing</string>
+    <string name="title_activity_queue_search">queueSearch</string>
+</resources>
