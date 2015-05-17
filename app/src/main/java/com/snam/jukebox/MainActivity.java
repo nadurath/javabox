@@ -42,6 +42,7 @@ public class MainActivity extends ActionBarActivity {
         if(auth == true)
         {
             Intent i = new Intent(this, home.class);
+
             startActivity(i);
         }
     }

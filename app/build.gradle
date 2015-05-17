@@ -31,5 +31,6 @@ dependencies {
     compile 'com.spotify.sdk:spotify-auth:1.0.0-beta10@aar'
     compile 'com.spotify.sdk:spotify-player:1.0.0-beta10@aar'
     compile 'com.android.support:appcompat-v7:22.0.0'
+    compile files('spotify-web-api-android-all-0.1.0.jar')
 
 }

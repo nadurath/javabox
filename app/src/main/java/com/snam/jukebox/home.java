@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
@@ -23,8 +24,17 @@ import com.spotify.sdk.android.player.PlayerNotificationCallback;
 import com.spotify.sdk.android.player.PlayerState;
 import com.spotify.sdk.android.player.Spotify;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 
+import kaaes.spotify.webapi.android.*;
+import kaaes.spotify.webapi.android.models.Artist;
+import kaaes.spotify.webapi.android.models.ArtistsPager;
+import kaaes.spotify.webapi.android.models.Track;
+import kaaes.spotify.webapi.android.models.TracksPager;
+import retrofit.RetrofitError;
 
 public class home extends ActionBarActivity implements PlayerNotificationCallback, ConnectionStateCallback {
 
@@ -32,64 +42,77 @@ public class home extends ActionBarActivity implements PlayerNotificationCallbac
     private static final String CLIENT_ID = "3e21eec6f57e4f6a9a2446c1beeb2051";
     private static final String REDIRECT_URI = "javabox://callback";
     private static final int REQUEST_CODE = 1337;
-    private Player mPlayer;
-    Vinyl v;
+    private static Player mPlayer;
+    private static Vinyl v;
     Track t;
-    Bitmap albumArt;
     String artist;
     String songTitle;
     String albumTitle;
+    private static ArrayList<Track> maps;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
+//        t = new Track();
+        if(maps==null)
+            maps = new ArrayList<>();
+//        Intent intent = getIntent();
+//        t.songTitle = intent.getStringExtra("NEW_TRACK");
+//        t.artist = intent.getStringExtra("NEW_ARTIST");
+//        t.album = intent.getStringExtra("NEW_ALBUM");
+//        t.duration = intent.getStringExtra("NEW_DURATION");
+//        t.uri = intent.getStringExtra("NEW_URI");
+        if(Singleton.getInstance().getSongs()!=null) {//if we already have a queue just add the song
+            maps= (Singleton.getInstance().getSongs());
+            t = Singleton.getInstance().getSong();
+            maps.add(t);
+            Singleton.getInstance().setSong(null);
+        }
+        else if(Singleton.getInstance().getSong()!=null) {//otherwise we add the new song to a new queue
+                maps.add(Singleton.getInstance().getSong());
+            t = Singleton.getInstance().getSong();
+            Singleton.getInstance().setSong(null);
+            Singleton.getInstance().setSongs(maps);
+        }
 
         AuthenticationRequest.Builder builder = new AuthenticationRequest.Builder(CLIENT_ID,
                 AuthenticationResponse.Type.TOKEN,
                 REDIRECT_URI);
-        builder.setScopes(new String[]{"user-read-private", "streaming"})
+        builder.setScopes(new String[]{"user-read-private", "streaming"});
         AuthenticationRequest request = builder.build();
 
-        //AuthenticationClient.openLoginActivity(this, REQUEST_CODE, request);
-
-        t = new Track();
-        //String albumArt = "";
-
-        t.artist = "Portugal. The Man";
-        t.songTitle = "Purple Yellow Red And Blue";
-        t.album = "Evil Friends";
-        t.albumArt = BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.record3);
+        AuthenticationClient.openLoginActivity(this, REQUEST_CODE, request);
 
         v = new Vinyl(getApplication(), findViewById(R.id.albumArtwork));
         v.changeArt(BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.record3));
 
         TextView songView = (TextView) findViewById(R.id.songTitle);
-        songView.setText(t.songTitle);
+        songView.setText(t==null?"---":t.name);
         TextView artistView = (TextView) findViewById(R.id.artist);
-        artistView.setText(t.artist);
+        artistView.setText(t==null?"---":t.artists.get(0).name);
         TextView albumView = (TextView) findViewById(R.id.albumTitle);
-        albumView.setText(t.album);
+        albumView.setText(t==null?"---":t.album.name);
 
 
         ListView listview = (ListView) findViewById(R.id.listView);
-        final ArrayList<Track> maps = new ArrayList<>();
 
 
-        for (int i = 1; i < 21; i++) {
-            Track song3 = new Track();
-            song3.songTitle = (int) (Math.random() * 2) == 0 ? "Sandstorm" : "Butts";
-            song3.artist = (int) (Math.random() * 2) == 0 ? "Darude" : "Jason Derulo";
-            song3.duration = (int) (Math.random() * 2) == 0 ? "4:20" : "6:90";
-            song3.album = (int) (Math.random() * 2) == 0 ? "The Green Album" : "Album 2";
-            song3.queuePos = i + " ";
-            maps.add(song3);
+//        for (int i = 1; i < 21; i++) {
+//            Track song3 = new Track();
+//            song3.songTitle = (int) (Math.random() * 2) == 0 ? "Sandstorm" : "Butts";
+//            song3.artist = (int) (Math.random() * 2) == 0 ? "Darude" : "Jason Derulo";
+//            song3.duration = (int) (Math.random() * 2) == 0 ? "4:20" : "6:90";
+//            song3.album = (int) (Math.random() * 2) == 0 ? "The Green Album" : "Album 2";
+//            song3.queuePos = i + " ";
+//            maps.add(song3);
+//        }
+
+        if(maps.size()>0) {
+            SongAdapter adapter = new SongAdapter(this, R.layout.song_cell, maps);
+            listview.setAdapter(adapter);
         }
-
-
-        SongAdapter adapter = new SongAdapter(this, R.layout.song_cell, maps);
-        listview.setAdapter(adapter);
         /*listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
@@ -123,41 +146,39 @@ public class home extends ActionBarActivity implements PlayerNotificationCallbac
     }
 
     public static void onSelectItem(Context context, String songChoice){
-        //CharSequence text = songChoice + " has been added to the queue!";
-        /*CharSequence text = "Okay so currently what we want is to simply display the upcoming tracks rather than adding it to the queue so I fucked up\n well actually you fucked up Sam";
-        int duration = Toast.LENGTH_LONG;
-
-        Toast toast = Toast.makeText(context, text, duration);
-        toast.setGravity(Gravity.CENTER_VERTICAL, 200, -380);
-        toast.show();*/
-
         System.out.println("add " + songChoice + " to queue");
     }
 
     public void queueNew(View view) {
-        Intent i = new Intent(this, queueSearch.class);
-        startActivity(i);
+        if(token!=null) {//only pass to the search view if we have been logged in
+            Intent i = new Intent(this, queueSearch.class);
+            i.putExtra("TOKEN",token);
+            startActivity(i);
+        }
     }
 
     public void changeArt(View view) {
         v.changeArt(BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.record3));
+        System.out.println("add " + maps.get(0).uri + " to queue");
+
     }
 
     public void onTrackChange(View view){
 
         //somehow get the track that is currently playing???????
+
         t = new Track(); //instead of new track, pull info for the track that begins playing NOW
-        t.albumArt = BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.record3); //temporary, until i can actually pull a song from somewhere and grab have its albumart
-        songTitle = t.songTitle;
-        artist = t.artist;
-        albumTitle = t.album;
+        //t.albumArt = BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.record3); //temporary, until i can actually pull a song from somewhere and grab have its albumart
+        songTitle = t.name;
+        artist = t.artists.get(0).name;
+        albumTitle = t.album.name;
         TextView songView = (TextView) findViewById(R.id.songTitle);
         songView.setText(songTitle);
         TextView artistView = (TextView) findViewById(R.id.artist);
         artistView.setText(artist);
         TextView albumView = (TextView) findViewById(R.id.albumTitle);
         albumView.setText(albumTitle);
-        v.changeArt(t.albumArt);
+        //v.changeArt(t.albumArt);
 
         //figure out how to seamlessly transition between songs
         //when the track changes, change the ImageView of the rotating record to the track.albumArt bitmap
@@ -165,7 +186,7 @@ public class home extends ActionBarActivity implements PlayerNotificationCallbac
         //when the track changes, change all of the textview to track.title / track.album / track.artist and so on and so forth
 
     }
-
+    String token;
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent intent){
         super.onActivityResult(requestCode,resultCode,intent);
@@ -173,13 +194,28 @@ public class home extends ActionBarActivity implements PlayerNotificationCallbac
         if (requestCode == REQUEST_CODE) {
             AuthenticationResponse response = AuthenticationClient.getResponse(resultCode, intent);
             if (response.getType() == AuthenticationResponse.Type.TOKEN) {
+                token = response.getAccessToken();
                 Config playerConfig = new Config(this, response.getAccessToken(), CLIENT_ID);
                 mPlayer = Spotify.getPlayer(playerConfig, this, new Player.InitializationObserver() {
                     @Override
                     public void onInitialized(Player player) {
                         mPlayer.addConnectionStateCallback(home.this);
                         mPlayer.addPlayerNotificationCallback(home.this);
-                        mPlayer.play("spotify:track:2TpxZ7JUBn3uw46aR7qd6V");
+                        //mPlayer.play("spotify:track:1W2ox3KxfTEQfO5NdOaK7E");// once i find out how to get the track's URI in the search function, this will read "mPlayer.play(maps.get(0).uri); or something like that -> Dawood
+                        if(maps.size()>0) {
+                            mPlayer.play(maps.get(0).uri);//play the funky music
+
+                            Log.d("arturl",maps.get(0).album.images.get(0).url);
+                            try {
+                                URL url = new URL(maps.get(0).album.images.get(0).url);
+                                new GetArt().execute(url);
+                            }
+                            catch(Exception e)
+                            {
+                                Log.e("error",e.toString());
+                            }
+                        }
+
                     }
 
                     @Override
@@ -189,6 +225,10 @@ public class home extends ActionBarActivity implements PlayerNotificationCallbac
                 });
             }
         }
+    }
+
+    public void playTrack(){
+        mPlayer.play(maps.get(0).uri);
     }
 
     @Override
@@ -229,5 +269,24 @@ public class home extends ActionBarActivity implements PlayerNotificationCallbac
     @Override
     protected void onDestroy(){
         super.onDestroy();
+    }
+
+
+    private class GetArt extends AsyncTask<URL,Void , Bitmap> { //this is the getting art function
+        protected Bitmap doInBackground(URL... url) {
+            Bitmap image = null;
+            try {
+                 image = BitmapFactory.decodeStream(url[0].openConnection().getInputStream());
+            }
+            catch (Exception e){
+                Log.e("art get error",e.toString());}
+            return image;
+        }
+        protected void onPostExecute(Bitmap result) {
+            if(result!=null)
+                v.changeArt(result);
+            else
+                Log.e("art","the art was null");
+        }
     }
 }
