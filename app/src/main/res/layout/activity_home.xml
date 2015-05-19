@@ -33,7 +33,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
 
-        android:background="#000000"
+
         android:layout_centerHorizontal="true"
         android:textColor="#FFFFFF"
         android:textSize="15dp"
@@ -51,7 +51,7 @@
         android:layout_centerHorizontal="true"
         android:layout_alignLeft="@id/songTitle"
 
-        android:background="#000000"
+
         android:textColor="#FFFFFF"
         android:textSize="15dp"
         android:layout_marginTop="10dp"
@@ -65,7 +65,6 @@
         android:layout_centerHorizontal="true"
         android:layout_alignLeft="@id/artist"
 
-        android:background="#000000"
         android:textColor="#FFFFFF"
         android:textSize="15dp"
         android:layout_marginTop="10dp"

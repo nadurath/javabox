@@ -24,93 +24,37 @@ import com.spotify.sdk.android.player.PlayerNotificationCallback;
 import com.spotify.sdk.android.player.PlayerState;
 import com.spotify.sdk.android.player.Spotify;
 
-import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 
-import kaaes.spotify.webapi.android.*;
-import kaaes.spotify.webapi.android.models.Artist;
-import kaaes.spotify.webapi.android.models.ArtistsPager;
-import kaaes.spotify.webapi.android.models.Track;
-import kaaes.spotify.webapi.android.models.TracksPager;
-import retrofit.RetrofitError;
+import kaaes.spotify.webapi.android.models.*;
 
-public class home extends ActionBarActivity implements PlayerNotificationCallback, ConnectionStateCallback {
+public class homeClient extends ActionBarActivity implements PlayerNotificationCallback, ConnectionStateCallback {
 
-
-    private static final String CLIENT_ID = "3e21eec6f57e4f6a9a2446c1beeb2051";
-    private static final String REDIRECT_URI = "javabox://callback";
-    private static final int REQUEST_CODE = 1337;
-    private static Player mPlayer;
     private static Vinyl v;
-    Track t;
     String artist;
     String songTitle;
     String albumTitle;
-    private static ArrayList<Track> maps;
+
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
-//        t = new Track();
-        if(maps==null)
-            maps = new ArrayList<>();
 //        Intent intent = getIntent();
 //        t.songTitle = intent.getStringExtra("NEW_TRACK");
 //        t.artist = intent.getStringExtra("NEW_ARTIST");
 //        t.album = intent.getStringExtra("NEW_ALBUM");
 //        t.duration = intent.getStringExtra("NEW_DURATION");
 //        t.uri = intent.getStringExtra("NEW_URI");
-        if(Singleton.getInstance().getSongs()!=null) {//if we already have a queue just add the song
-            maps= (Singleton.getInstance().getSongs());
-            t = Singleton.getInstance().getSong();
-            maps.add(t);
-            Singleton.getInstance().setSong(null);
-        }
-        else if(Singleton.getInstance().getSong()!=null) {//otherwise we add the new song to a new queue
-                maps.add(Singleton.getInstance().getSong());
-            t = Singleton.getInstance().getSong();
-            Singleton.getInstance().setSong(null);
-            Singleton.getInstance().setSongs(maps);
-        }
-
-        AuthenticationRequest.Builder builder = new AuthenticationRequest.Builder(CLIENT_ID,
-                AuthenticationResponse.Type.TOKEN,
-                REDIRECT_URI);
-        builder.setScopes(new String[]{"user-read-private", "streaming"});
-        AuthenticationRequest request = builder.build();
-
-        AuthenticationClient.openLoginActivity(this, REQUEST_CODE, request);
 
         v = new Vinyl(getApplication(), findViewById(R.id.albumArtwork));
         v.changeArt(BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.record3));
 
-        TextView songView = (TextView) findViewById(R.id.songTitle);
-        songView.setText(t==null?"---":t.name);
-        TextView artistView = (TextView) findViewById(R.id.artist);
-        artistView.setText(t==null?"---":t.artists.get(0).name);
-        TextView albumView = (TextView) findViewById(R.id.albumTitle);
-        albumView.setText(t==null?"---":t.album.name);
 
 
         ListView listview = (ListView) findViewById(R.id.listView);
-
-
-        if(maps.size()>0) {
-            SongAdapter adapter = new SongAdapter(this, R.layout.song_cell, maps);
-            listview.setAdapter(adapter);
-        }
-        /*listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
-                Map<String, String> temp = maps.get(position);
-                String choice = temp.get("title");
-                onSelectItem(getApplicationContext(),choice);
-            }
-        });*/
     }
 
     @Override
@@ -157,7 +101,7 @@ public class home extends ActionBarActivity implements PlayerNotificationCallbac
 
         //somehow get the track that is currently playing???????
 
-        t = new Track(); //instead of new track, pull info for the track that begins playing NOW
+        t = new kaaes.spotify.webapi.android.models.Track(); //instead of new track, pull info for the track that begins playing NOW
         //t.albumArt = BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.record3); //temporary, until i can actually pull a song from somewhere and grab have its albumart
         songTitle = t.name;
         artist = t.artists.get(0).name;
@@ -192,16 +136,14 @@ public class home extends ActionBarActivity implements PlayerNotificationCallbac
                         mPlayer.addConnectionStateCallback(home.this);
                         mPlayer.addPlayerNotificationCallback(home.this);
                         //mPlayer.play("spotify:track:1W2ox3KxfTEQfO5NdOaK7E");// once i find out how to get the track's URI in the search function, this will read "mPlayer.play(maps.get(0).uri); or something like that -> Dawood
-                        if(maps.size()>0) {
+                        if (maps.size() > 0) {
                             mPlayer.play(maps.get(0).uri);//play the funky music
-                            Log.d("arturl",maps.get(0).album.images.get(0).url);
+                            Log.d("arturl", maps.get(0).album.images.get(0).url);
                             try {
                                 URL url = new URL(maps.get(0).album.images.get(0).url);
                                 new GetArt().execute(url);
-                            }
-                            catch(Exception e)
-                            {
-                                Log.e("error",e.toString());
+                            } catch (Exception e) {
+                                Log.e("error", e.toString());
                             }
                         }
                     }
@@ -264,7 +206,7 @@ public class home extends ActionBarActivity implements PlayerNotificationCallbac
         protected Bitmap doInBackground(URL... url) {
             Bitmap image = null;
             try {
-                 image = BitmapFactory.decodeStream(url[0].openConnection().getInputStream());
+                image = BitmapFactory.decodeStream(url[0].openConnection().getInputStream());
             }
             catch (Exception e){
                 Log.e("art get error",e.toString());}

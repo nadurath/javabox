@@ -43,16 +43,6 @@ public class queueSearch extends ActionBarActivity {
 
         maps = new ArrayList<>();
 
-
-//        for(int i = 0;i<15;i++) {
-//            Map<String,String> song = new TreeMap<>();
-//            song.put("title", (int)(Math.random()*2)==0?"Follow Through":"Nine is God");
-//            song.put("artist", (int)(Math.random()*2)==0?"Freelance Whales":"Wavves");
-//            song.put("length", (int)(Math.random()*2)==0?"4:20":"6:90");
-//            song.put("album", (int)(Math.random()*2)==0?"Diluvia":"GTA V Soundtrack");
-//            maps.add(song);
-//        }
-
         SongAdapter adapter = new SongAdapter(this, R.layout.queue_song_cell, maps);
         listview.setAdapter(adapter);
 
