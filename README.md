@@ -1,2 +1,2 @@
 # javabox
-android spotify client meant to act as a jukebox
+android app using spotify data / functionality to emulate a jukebox
