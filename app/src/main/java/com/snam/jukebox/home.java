@@ -49,9 +49,9 @@ public class home extends ActionBarActivity implements PlayerNotificationCallbac
         AuthenticationRequest.Builder builder = new AuthenticationRequest.Builder(CLIENT_ID,
                 AuthenticationResponse.Type.TOKEN,
                 REDIRECT_URI);
-        builder.setScopes(new String[]{"user-read-private", "streaming"})
+        builder.setScopes(new String[]{"user-read-private", "streaming"});
         AuthenticationRequest request = builder.build();
-
+        //here I added a useless comment to test git
         //AuthenticationClient.openLoginActivity(this, REQUEST_CODE, request);
 
         t = new Track();
