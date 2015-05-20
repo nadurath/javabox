@@ -58,12 +58,6 @@ public class home extends ActionBarActivity implements PlayerNotificationCallbac
 //        t = new Track();
         if(maps==null)
             maps = new ArrayList<>();
-//        Intent intent = getIntent();
-//        t.songTitle = intent.getStringExtra("NEW_TRACK");
-//        t.artist = intent.getStringExtra("NEW_ARTIST");
-//        t.album = intent.getStringExtra("NEW_ALBUM");
-//        t.duration = intent.getStringExtra("NEW_DURATION");
-//        t.uri = intent.getStringExtra("NEW_URI");
         if(Singleton.getInstance().getSongs()!=null) {//if we already have a queue just add the song
             maps= (Singleton.getInstance().getSongs());
             t = Singleton.getInstance().getSong();
@@ -103,14 +97,6 @@ public class home extends ActionBarActivity implements PlayerNotificationCallbac
             SongAdapter adapter = new SongAdapter(this, R.layout.song_cell, maps);
             listview.setAdapter(adapter);
         }
-        /*listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
-                Map<String, String> temp = maps.get(position);
-                String choice = temp.get("title");
-                onSelectItem(getApplicationContext(),choice);
-            }
-        });*/
     }
 
     @Override

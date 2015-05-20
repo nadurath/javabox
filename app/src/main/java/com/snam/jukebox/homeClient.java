@@ -6,6 +6,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.wifi.p2p.WifiP2pDevice;
+import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -40,16 +42,14 @@ public class homeClient extends ActionBarActivity{//} implements PlayerNotificat
     String albumTitle;
     WifiP2pManager mManager;
     WifiP2pManager.Channel mChannel;
-    BroadcastReceiver mReceiver;
+    Receive mReceiver;
     IntentFilter mIntentFilter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
-        mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
-        mChannel = mManager.initialize(this, getMainLooper(), null);
-        mReceiver = new Receive(mManager, mChannel, this);
+
         mIntentFilter = new IntentFilter();
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
@@ -57,9 +57,10 @@ public class homeClient extends ActionBarActivity{//} implements PlayerNotificat
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
         v = new Vinyl(getApplication(), findViewById(R.id.albumArtwork));
         v.changeArt(BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.record3));
-
-
-
+        mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
+        mChannel = mManager.initialize(this, getMainLooper(), null);
+        mReceiver = new Receive(mManager, mChannel, this);
+        mReceiver.requestPeers();
         ListView listview = (ListView) findViewById(R.id.listView);
     }
 
@@ -112,17 +113,18 @@ public class homeClient extends ActionBarActivity{//} implements PlayerNotificat
     public void changeArt(View view) {
         //v.changeArt(BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.record3));      //I'm using the record as my button for testing things
         //System.out.println("add " + maps.get(0).uri + " to queue");
-        mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
-            @Override
-            public void onSuccess() {
-                Log.d("p2p","discovering seems to be working ");
-            }
-
-            @Override
-            public void onFailure(int reasonCode) {
-                Log.d("p2p","we did not do it:(");
-            }
-        });
+        mReceiver.requestPeers();
+//        mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
+//            @Override
+//            public void onSuccess() {
+//                Log.d("p2p","discovering seems to be working ");
+//            }
+//
+//            @Override
+//            public void onFailure(int reasonCode) {
+//                Log.d("p2p","we did not do it:(");
+//            }
+//        });
 
     }
 
