@@ -6,7 +6,7 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     android:paddingBottom="0dp"
     android:background="#ff490d0d"
-    tools:context="com.snam.jukebox.home">
+    tools:context="com.snam.jukebox.homeServer">
 
     <TextView
         android:layout_width="wrap_content"

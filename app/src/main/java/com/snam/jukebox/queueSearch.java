@@ -1,8 +1,6 @@
 package com.snam.jukebox;
 
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
@@ -16,15 +14,11 @@ import android.widget.ListView;
 import android.widget.SearchView;
 import android.widget.Toast;
 
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
 
 import kaaes.spotify.webapi.android.SpotifyApi;
 import kaaes.spotify.webapi.android.SpotifyError;
 import kaaes.spotify.webapi.android.SpotifyService;
-import kaaes.spotify.webapi.android.models.Image;
 import kaaes.spotify.webapi.android.models.Track;
 import kaaes.spotify.webapi.android.models.TracksPager;
 import retrofit.RetrofitError;
@@ -100,11 +94,11 @@ public class queueSearch extends ActionBarActivity {
         Toast toast = Toast.makeText(getApplicationContext(), text, duration);
         toast.setGravity(Gravity.CENTER_VERTICAL, 0, 0);
         toast.show();
-        home.onSelectItem(getApplicationContext(), d.name);
+        homeServer.onSelectItem(getApplicationContext(), d.name);
         //addTrack(d);
         Singleton.getInstance().setSong(d);//singleton can pass objects between classes. I'm gonna depreciate DTrack and we should work with their track method now (SAM)
 
-        Intent i = new Intent(this, home.class);
+        Intent i = new Intent(this, homeServer.class);
         startActivity(i);
     }
 
@@ -124,7 +118,7 @@ public class queueSearch extends ActionBarActivity {
         String tURI = uri;
         Track w = new Track();
         //w.songTitle = x;
-        Intent i = new Intent(this, home.class);
+        Intent i = new Intent(this, homeServer.class);
         i.putExtra("NEW_TRACK", track);
         i.putExtra("NEW_ARTIST", ar);
         i.putExtra("NEW_ALBUM", album);

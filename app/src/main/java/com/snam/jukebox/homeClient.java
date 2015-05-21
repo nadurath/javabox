@@ -1,13 +1,16 @@
 package com.snam.jukebox;
 
 import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
+import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -29,12 +32,19 @@ import com.spotify.sdk.android.player.PlayerNotificationCallback;
 import com.spotify.sdk.android.player.PlayerState;
 import com.spotify.sdk.android.player.Spotify;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
 import kaaes.spotify.webapi.android.models.*;
 
-public class homeClient extends ActionBarActivity{//} implements PlayerNotificationCallback, ConnectionStateCallback {
+public class homeClient extends ActionBarActivity implements WifiP2pManager.ConnectionInfoListener{//} implements PlayerNotificationCallback, ConnectionStateCallback {
 
     private static Vinyl v;
     String artist;
@@ -44,6 +54,7 @@ public class homeClient extends ActionBarActivity{//} implements PlayerNotificat
     WifiP2pManager.Channel mChannel;
     Receive mReceiver;
     IntentFilter mIntentFilter;
+    WifiP2pInfo  info;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,7 +71,6 @@ public class homeClient extends ActionBarActivity{//} implements PlayerNotificat
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         mChannel = mManager.initialize(this, getMainLooper(), null);
         mReceiver = new Receive(mManager, mChannel, this);
-        mReceiver.requestPeers();
         ListView listview = (ListView) findViewById(R.id.listView);
     }
 
@@ -110,10 +120,38 @@ public class homeClient extends ActionBarActivity{//} implements PlayerNotificat
 //        }
     }
 
+    public void brodcastMessage()
+    {
+        connectToHost();
+        new PostMessage().execute("This is a secret!");
+    }
+
+    private void connectToHost()
+    {
+        if(mReceiver.peers.size()>0) {
+            WifiP2pDevice device = mReceiver.peers.get(0);
+            WifiP2pConfig config = new WifiP2pConfig();
+            config.deviceAddress = device.deviceAddress;
+            mManager.connect(mChannel, config, new WifiP2pManager.ActionListener() {
+
+                @Override
+                public void onSuccess() {
+                    Log.d("p2pconnect","Connected to device");
+                }
+
+                @Override
+                public void onFailure(int reason) {
+                    Log.e("p2pconnect","Could not connect to device");
+                }
+            });
+        }
+    }
+
+
     public void changeArt(View view) {
         //v.changeArt(BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.record3));      //I'm using the record as my button for testing things
         //System.out.println("add " + maps.get(0).uri + " to queue");
-        mReceiver.requestPeers();
+        brodcastMessage();
 //        mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
 //            @Override
 //            public void onSuccess() {
@@ -150,6 +188,12 @@ public class homeClient extends ActionBarActivity{//} implements PlayerNotificat
 
         //when the track changes, change all of the textview to track.title / track.album / track.artist and so on and so forth
 
+    }
+
+    @Override
+    public void onConnectionInfoAvailable(WifiP2pInfo infso) {
+        info = infso;//saves connection info!
+        Log.d("p2pinfo","Info filled");
     }
 //    String token;
 //    @Override
@@ -250,4 +294,59 @@ public class homeClient extends ActionBarActivity{//} implements PlayerNotificat
 //                Log.e("art","the art was null");
 //        }
 //    }
+
+    private class PostMessage extends AsyncTask<String,Void , String> { //this is sending a message to host
+        protected String doInBackground(String... s) {
+            String ret = null;
+            if(mReceiver.peers.size()>0)
+            {
+                WifiP2pDevice device = mReceiver.peers.get(0);
+                int port = 420;
+                int len = 100000;
+                Socket socket = new Socket();
+                byte buf[]  = new byte[1024];//not really sure what this is for yet
+                try {
+                    /**
+                     * Create a client socket with the host,
+                     * port, and timeout information.
+                     */
+                    socket.bind(null);
+                    InetSocketAddress address = new InetSocketAddress(device.deviceAddress, port);
+                    socket.connect(address, 500);//connects to host (server)
+
+                    OutputStream outputStream = socket.getOutputStream();
+                    InputStream stream = new ByteArrayInputStream(s[0].getBytes(StandardCharsets.UTF_8));//this puts our string into a input stream
+                    while ((len = stream.read(buf)) != -1) {
+                        outputStream.write(buf, 0, len);//this writes it to the output stream which should go to the other device
+                        Log.d("BITE","WRITEBITE");
+                    }
+                    ret = s[0];
+                    outputStream.close();
+                    stream.close();
+                } catch (IOException e) {
+                    Log.e("p2pdata",e.toString());
+                    e.printStackTrace();
+                }
+
+                finally {
+                    if (socket != null) {
+                        if (socket.isConnected()) {
+                            try {
+                                socket.close();
+                            } catch (IOException e) {
+                                Log.e("p2pdata",e.toString());
+                            }
+                        }
+                    }
+                }
+            }
+           return ret;
+        }
+        protected void onPostExecute(String result) {
+            if(result==null)
+                Log.e("p2pmessage","the send resullt was null");
+            else
+                Log.e("p2pmessage","the message was sent");
+        }
+    }
 }
