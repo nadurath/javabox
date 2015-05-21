@@ -23,7 +23,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".home"
+            android:name=".homeServer"
             android:label="@string/title_activity_home"
             android:parentActivityName=".MainActivity" >
             <meta-data
@@ -45,7 +45,7 @@
             android:name=".queueSearch"
             android:label="@string/title_activity_queue_search"
             android:windowSoftInputMode="stateHidden|adjustResize"
-            android:parentActivityName=".home" >
+            android:parentActivityName=".homeServer" >
             <intent-filter>
                 <action android:name="android.intent.action.SEARCH"/>
                 </intent-filter>

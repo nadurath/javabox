@@ -50,4 +50,14 @@
         android:layout_centerHorizontal="true"
         android:onClick="nextActivity"/>
 
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/nextAct"
+        android:id="@+id/serverButton"
+        android:typeface="serif"
+        android:text="Host server"
+        android:layout_centerHorizontal="true"
+        android:onClick="hostServer"/>
+
 </RelativeLayout>

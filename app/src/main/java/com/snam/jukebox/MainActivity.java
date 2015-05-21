@@ -42,9 +42,14 @@ public class MainActivity extends ActionBarActivity {
         if(auth == true)
         {
             Intent i = new Intent(this, homeClient.class);
-
             startActivity(i);
         }
+    }
+
+    public void hostServer(View view)
+    {
+        Intent i = new Intent(this, homeServer.class);
+        startActivity(i);
     }
 
     @Override
