@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.net.NetworkInfo;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pInfo;
@@ -22,19 +23,13 @@ public class Receive extends BroadcastReceiver implements WifiP2pManager.Connect
     Activity activity;
     WifiP2pManager.PeerListListener myPeerListListener;
     public ArrayList<WifiP2pDevice> peers = new ArrayList();
-
+    public WifiP2pInfo pInfo;
     public Receive(WifiP2pManager man, WifiP2pManager.Channel chan, Activity act) {
         super();
         manager = man;
         channel = chan;
         activity = act;
         Log.d("receive", "object created at least");
-        manager.requestPeers(channel, new WifiP2pManager.PeerListListener() {
-            @Override
-            public void onPeersAvailable(WifiP2pDeviceList peerList) {
-                peers = new ArrayList<>(peerList.getDeviceList());
-            }
-        });
     }
 
     @Override
@@ -49,19 +44,37 @@ public class Receive extends BroadcastReceiver implements WifiP2pManager.Connect
                 Log.d("p2p","wifi p2p is disabled");
             }
         } else if (WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION.equals(action)) {
-            Log.d("p2p","!!!!!");
+            Log.d("p2p","Peers changed");
             if (manager != null) {
-                manager.requestPeers(channel, myPeerListListener);
+                manager.requestPeers(channel, new WifiP2pManager.PeerListListener() {
+                    @Override
+                    public void onPeersAvailable(WifiP2pDeviceList peerList) {
+                        peers = new ArrayList<>(peerList.getDeviceList());
+                        Log.d("p2pPeers", peers.size() == 1 ? "found 1 peer" : "found " + peers.size() + " peers");
+                        if(peers.size()>0)
+                            ((homeClient)activity).connectToDevice(peers.get(0));
+                    }
+                });
             }
-             WifiP2pManager.PeerListListener peerListListener = new WifiP2pManager.PeerListListener() {
-                @Override
-                public void onPeersAvailable(WifiP2pDeviceList peerList) {
-                    peers = new ArrayList<>(peerList.getDeviceList());
-                }
-            };
-                    Log.d("p2p","found possible peers?");
         } else if (WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION.equals(action)) {
-            Log.d("connection changed",action);
+            if (manager == null) {
+                return;
+            }
+
+            NetworkInfo networkInfo = (NetworkInfo) intent
+                    .getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
+
+            if (networkInfo.isConnected()) {
+                // We are connected with the other device, request connection
+                // info to find group owner IP
+                manager.requestConnectionInfo(channel, new WifiP2pManager.ConnectionInfoListener() {
+                    @Override
+                    public void onConnectionInfoAvailable(WifiP2pInfo info) {
+                        Log.d("info","Important");
+                        pInfo = info;
+                    }
+                });
+            }
         } else if (WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION.equals(action)) {
             Log.d("device changed",action);
         }

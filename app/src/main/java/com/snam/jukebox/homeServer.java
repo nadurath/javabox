@@ -7,16 +7,19 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
+import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.spotify.sdk.android.authentication.AuthenticationClient;
 import com.spotify.sdk.android.authentication.AuthenticationRequest;
@@ -31,7 +34,12 @@ import com.spotify.sdk.android.player.Spotify;
 import java.net.URL;
 import java.util.ArrayList;
 
+import kaaes.spotify.webapi.android.SpotifyApi;
+import kaaes.spotify.webapi.android.SpotifyError;
+import kaaes.spotify.webapi.android.SpotifyService;
 import kaaes.spotify.webapi.android.models.Track;
+import kaaes.spotify.webapi.android.models.TracksPager;
+import retrofit.RetrofitError;
 
 public class homeServer extends ActionBarActivity implements PlayerNotificationCallback, ConnectionStateCallback {
 
@@ -56,7 +64,7 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 //        t = new Track();
-        new Server(this).execute(new Object());
+        new Server(this).execute("Hello");
         if(maps==null)
             maps = new ArrayList<>();
         if(Singleton.getInstance().getSongs()!=null) {//if we already have a queue just add the song
@@ -109,8 +117,29 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         mChannel = mManager.initialize(this, getMainLooper(), null);
         mReceiver = new Receive(mManager, mChannel, this);
+        mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
+            @Override
+            public void onSuccess() {
+                Log.d("p2p","Discover peers run");
+            }
 
+            @Override
+            public void onFailure(int reasonCode) {
+                Log.d("p2p","Discover peers failed");
+            }
+        });
 
+    }
+
+    public void toastString(String string)
+    {
+        Toast toast = Toast.makeText(getApplicationContext(), string, Toast.LENGTH_SHORT);
+        toast.setGravity(Gravity.CENTER_VERTICAL, 0, 0);
+        toast.show();
+    }
+    public void restartServer()
+    {
+        new Server(this).execute("HELLO");
     }
 
     @Override
@@ -158,6 +187,18 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
                 Log.d("p2pDevices",peers.toString());
             }
         });
+    }
+
+    public void brodcastMessage(View view)
+    {
+
+    }
+
+    public void searchAndPlay(String string)
+    {
+        if(maps==null)
+            maps = new ArrayList<>();
+        new Search().execute(string);
     }
 
     public void onTrackChange(View view){
@@ -282,6 +323,35 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
                 v.changeArt(result);
             else
                 Log.e("art","the art was null");
+        }
+    }
+
+    private class Search extends AsyncTask<String,Void , String> { //this is the searching function again, I sole it from the other class for testing things
+        protected String doInBackground(String... string) {         //this version is not really to be used, and plays immediatly
+            SpotifyApi api = new SpotifyApi();
+            api.setAccessToken(token);
+            Log.d("search",token);
+            String ret = "\n";
+            ArrayList<Track> mapsS = new ArrayList<>();
+            SpotifyService spotify = api.getService();
+            try {
+                maps.clear();
+                TracksPager tracks = spotify.searchTracks(string[0]);//this is the actual call to the search
+                for(Track a:tracks.tracks.items) {
+                    ret += " \n" + a.name;
+                    mapsS.add(a);
+                }
+                maps.add(0,mapsS.get(0));
+            } catch (RetrofitError error) {
+                SpotifyError spotifyError = SpotifyError.fromRetrofitError(error);
+                Log.e("api",error.toString());
+            }
+
+            return ret;
+        }
+        protected void onPostExecute(String result) {
+            Log.d("search", result);
+            playTrack();
         }
     }
 }
