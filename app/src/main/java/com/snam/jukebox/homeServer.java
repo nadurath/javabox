@@ -200,7 +200,6 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
             maps = new ArrayList<>();
         new Search().execute(string);
     }
-
     public void onTrackChange(View view){
 
         //somehow get the track that is currently playing???????
@@ -233,6 +232,7 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
             AuthenticationResponse response = AuthenticationClient.getResponse(resultCode, intent);
             if (response.getType() == AuthenticationResponse.Type.TOKEN) {
                 token = response.getAccessToken();
+                Log.d("token", "token filled");
                 Config playerConfig = new Config(this, response.getAccessToken(), CLIENT_ID);
                 mPlayer = Spotify.getPlayer(playerConfig, this, new Player.InitializationObserver() {
                     @Override
@@ -326,22 +326,25 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
         }
     }
 
-    private class Search extends AsyncTask<String,Void , String> { //this is the searching function again, I sole it from the other class for testing things
+    private class Search extends AsyncTask<String,Void , String> { //this is the searching function again, I stole it from the other class for testing things
         protected String doInBackground(String... string) {         //this version is not really to be used, and plays immediatly
+            if(token == null)
+                Log.e("token", "no token given");
+            else
+                Log.e("token", "token is: "+token);
             SpotifyApi api = new SpotifyApi();
             api.setAccessToken(token);
-            Log.d("search",token);
+            //Log.d("search",token);
             String ret = "\n";
             ArrayList<Track> mapsS = new ArrayList<>();
             SpotifyService spotify = api.getService();
             try {
-                maps.clear();
                 TracksPager tracks = spotify.searchTracks(string[0]);//this is the actual call to the search
                 for(Track a:tracks.tracks.items) {
                     ret += " \n" + a.name;
                     mapsS.add(a);
                 }
-                maps.add(0,mapsS.get(0));
+                maps.add(mapsS.get(0));
             } catch (RetrofitError error) {
                 SpotifyError spotifyError = SpotifyError.fromRetrofitError(error);
                 Log.e("api",error.toString());

@@ -55,6 +55,7 @@ public class homeClient extends ActionBarActivity implements WifiP2pManager.Conn
         mChannel = mManager.initialize(this, getMainLooper(), null);
         mReceiver = new Receive(mManager, mChannel, this);
         ListView listview = (ListView) findViewById(R.id.listView);
+        connectServer(null);
     }
 
     /* register the broadcast receiver with the intent values to be matched */
@@ -112,7 +113,7 @@ public class homeClient extends ActionBarActivity implements WifiP2pManager.Conn
 
             @Override
             public void onFailure(int reasonCode) {
-                Log.d("p2p","Discover peers failed");
+                Log.d("p2p","Discover peers failed because "+reasonCode);
             }
         });
     }
@@ -148,6 +149,14 @@ public class homeClient extends ActionBarActivity implements WifiP2pManager.Conn
     public void changeArt(View view) {
         //v.changeArt(BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.record3));
         //System.out.println("add " + maps.get(0).uri + " to queue");
+
+        mManager.requestPeers(mChannel, new WifiP2pManager.PeerListListener() {
+            @Override
+            public void onPeersAvailable(WifiP2pDeviceList peer) {
+                ArrayList<WifiP2pDevice> peers = new ArrayList<>(peer.getDeviceList());//using record as testing button
+                Log.d("p2pDevices",peers.toString());
+            }
+        });
     }
 
     public void onTrackChange(View view){

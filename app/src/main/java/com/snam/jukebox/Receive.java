@@ -60,7 +60,7 @@ public class Receive extends BroadcastReceiver implements WifiP2pManager.Connect
             if (manager == null) {
                 return;
             }
-
+            Log.d("p2pConnection","Connection Changed");
             NetworkInfo networkInfo = (NetworkInfo) intent
                     .getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
 
