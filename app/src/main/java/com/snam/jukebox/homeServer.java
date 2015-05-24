@@ -10,6 +10,7 @@ import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pManager;
+import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
@@ -35,6 +36,8 @@ import com.spotify.sdk.android.player.Spotify;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 import kaaes.spotify.webapi.android.SpotifyApi;
 import kaaes.spotify.webapi.android.SpotifyError;
@@ -58,7 +61,6 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
     private static ArrayList<Track> maps;
     WifiP2pManager mManager;
     WifiP2pManager.Channel mChannel;
-    Receive mReceiver;
     IntentFilter mIntentFilter;
 
     @Override
@@ -109,25 +111,18 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
             listview.setAdapter(adapter);
         }
 
-
-
-        mIntentFilter = new IntentFilter();
-        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
-        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
-        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
-        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION); //this is all the connecting to other devices work
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         mChannel = mManager.initialize(this, getMainLooper(), null);
-        mReceiver = new Receive(mManager, mChannel, this);
-        mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
+        startRegistration();
+        mManager.createGroup(mChannel, new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
-                Log.d("p2p","Discover peers run");
+                Log.d("p2p", "made group");
             }
 
             @Override
             public void onFailure(int reasonCode) {
-                Log.d("p2p","Discover peers failed");
+                Log.d("p2p", "could not make group");
             }
         });
 
@@ -141,7 +136,7 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
     }
     public void restartServer()
     {
-        new Server(this).execute("HELLO");
+        new Server(this).execute("HELLO");//every time the server gets a message it closes, so this reopens it. This is actually on purpose though
     }
 
     @Override
@@ -153,9 +148,6 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
@@ -178,24 +170,6 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
         }
     }
     private WifiP2pConfig config;
-    public void connectToDevice(WifiP2pDevice device)
-    {
-        config = new WifiP2pConfig();
-        config.deviceAddress = device.deviceAddress;
-            mManager.connect(mChannel, config, new WifiP2pManager.ActionListener() {
-
-                @Override
-                public void onSuccess() {
-                    Log.d("p2pconnect","Connected to device");
-                    Log.d("p2pConnect",config.deviceAddress);
-                }
-
-                @Override
-                public void onFailure(int reason) {
-                    Log.e("p2pconnect","Could not connect to device");
-                }
-            });
-    }
     public void changeArt(View view) {
         //changeArt(BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.record3));
         //System.out.println("add " + maps.get(0).uri + " to queue");
@@ -214,14 +188,13 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
 
     }
 
-    public void searchAndPlay(String string)
+    public void searchAndPlay(String string)//this is called by the serer, right now client sends song title and we go from there
     {
         if(maps==null)
             maps = new ArrayList<>();
         new Search().execute(string);
     }
     public void onTrackChange(View view){
-
         //somehow get the track that is currently playing???????
 
         t = new Track(); //instead of new track, pull info for the track that begins playing NOW
@@ -286,7 +259,39 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
             Log.d("token", "incorrect request code");
     }
 
-    public void playTrack(){
+    private void startRegistration() {
+        //  Create a string map containing information about your service.
+        Map record = new HashMap();
+        record.put("listenport", String.valueOf(4206));
+        record.put("buddyname", "John Doe" + (int) (Math.random() * 1000));
+        record.put("available", "visible");
+
+        // Service information.  Pass it an instance name, service type
+        // _protocol._transportlayer , and the map containing
+        // information other devices will want once they connect to this one.
+        WifiP2pDnsSdServiceInfo serviceInfo =
+                WifiP2pDnsSdServiceInfo.newInstance("javabox", "_presence._tcp", record);
+
+        // Add the local service, sending the service info, network channel,
+        // and listener that will be used to indicate success or failure of
+        // the request.
+        mManager.addLocalService(mChannel, serviceInfo, new WifiP2pManager.ActionListener() {
+            @Override
+            public void onSuccess() {
+                // Command successful! Code isn't necessarily needed here,
+                // Unless you want to update the UI or add logging statements.
+                Log.d("service","Service started");
+            }
+
+            @Override
+            public void onFailure(int arg0) {
+                // Command failed.  Check for P2P_UNSUPPORTED, ERROR, or BUSY
+                Log.d("service","Service could not be started");
+            }
+        });
+    }
+
+    public void playTrack(){//plays item 0 in maps
         if(maps.size()>0) {
             mPlayer.play(maps.get(0).uri);
             try {
@@ -295,23 +300,26 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
                 Log.e("URL", "bad album image URL");
             }
         }
+        else
+            mPlayer.pause();
     }
-    public void skip(View view){playNext();}
+    public void skip(View view){playNext();}//take a guess as to what this two do
     public void playNext(){
-        if(maps.size()>1)
+        if(maps.size()>0)
             maps.remove(0);
         playTrack();
+        ListView listview = (ListView) findViewById(R.id.listView);
+        SongAdapter adapter = new SongAdapter(this, R.layout.song_cell, maps);
+        listview.setAdapter(adapter);
     }
     public void addTrack(Track track)
     {
         maps.add(track);
         if(maps.size()==1)
-            playTrack();
+            playTrack();//if we just added the only song
         ListView listview = (ListView) findViewById(R.id.listView);
-        if(maps.size()>0) {
             SongAdapter adapter = new SongAdapter(this, R.layout.song_cell, maps);
             listview.setAdapter(adapter);
-        }
     }
 
     @Override

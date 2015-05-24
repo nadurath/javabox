@@ -104,8 +104,7 @@
         android:layout_below="@id/songProgress"
         android:layout_alignLeft="@id/songProgress"
         android:layout_alignStart="@id/songProgress"
-        android:layout_marginTop="20dp"
-        android:onClick="queueNew"/>
+        android:layout_marginTop="20dp"/>
 
     <ImageView
         android:layout_width="fill_parent"
