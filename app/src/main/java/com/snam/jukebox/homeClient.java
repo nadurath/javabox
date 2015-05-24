@@ -1,11 +1,9 @@
 package com.snam.jukebox;
 
 import android.content.Context;
-import android.content.IntentFilter;
 import android.graphics.BitmapFactory;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
-import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceRequest;
@@ -17,7 +15,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.ListView;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -27,21 +25,15 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 public class homeClient extends ActionBarActivity{//} implements PlayerNotificationCallback, ConnectionStateCallback {
 
     private static Vinyl v;
-    String artist;
-    String songTitle;
-    String albumTitle;
     WifiP2pManager mManager;
     WifiP2pManager.Channel mChannel;
-    IntentFilter mIntentFilter;
-
+    private boolean foundServer = false;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -49,7 +41,7 @@ public class homeClient extends ActionBarActivity{//} implements PlayerNotificat
         v = new Vinyl(getApplication(), findViewById(R.id.albumArtwork));
         v.changeArt(BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.record3));
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
-        mChannel = mManager.initialize(this, getMainLooper(), null);
+        mChannel = mManager.initialize(this, getMainLooper(),null );
         findServers();
     }
 
@@ -88,26 +80,38 @@ public class homeClient extends ActionBarActivity{//} implements PlayerNotificat
 
     private WifiP2pInfo info;
     public void connectServer(View view) {
-        mManager.connect(mChannel, config, new WifiP2pManager.ActionListener() {
-            @Override
-            public void onSuccess() {
-                Log.d("service", "Connected");
-                mManager.requestConnectionInfo(mChannel, new WifiP2pManager.ConnectionInfoListener() {
-                    @Override
-                    public void onConnectionInfoAvailable(WifiP2pInfo sinfo) {
-                        Log.d("info", sinfo.toString());
-                        info = sinfo;
-                    }
-                });
-            }
+        if(foundServer) {
+            mManager.connect(mChannel, config, new WifiP2pManager.ActionListener() {
+                @Override
+                public void onSuccess() {
+                    Log.d("service", "Connected");
+                    mManager.requestConnectionInfo(mChannel, new WifiP2pManager.ConnectionInfoListener() {
+                        @Override
+                        public void onConnectionInfoAvailable(WifiP2pInfo sinfo) {
+                            Log.d("info", sinfo.toString());
+                            info = sinfo;
+                            if (info.groupOwnerAddress == null)
+                                Toast.makeText(getApplicationContext(), "Try again in a few seconds", Toast.LENGTH_SHORT).show();
+                            else {
+                                Toast.makeText(getApplicationContext(), "Server connected!", Toast.LENGTH_SHORT).show();
+                                findViewById(R.id.connect).setEnabled(false);
+                                findViewById(R.id.send).setEnabled(true);
+                                ((Button) findViewById(R.id.connect)).setText("Connected");
+                            }
 
-            @Override
-            public void onFailure(int reason) {
-                Log.d("service", "not Connected" + reason);
-            }
-        });
+                        }
+                    });
+                }
+
+                @Override
+                public void onFailure(int reason) {
+                    Log.e("service", "not Connected" + reason);
+                    Toast.makeText(getApplicationContext(), "Unable to reach server. Try restarting app", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
     }
-    final HashMap<String, String> buddies = new HashMap<String, String>();
+    final HashMap<String, String> buddies = new HashMap<>();
     public void findServers()
     {
         WifiP2pManager.DnsSdTxtRecordListener txtListener = new WifiP2pManager.DnsSdTxtRecordListener() {
@@ -123,6 +127,11 @@ public class homeClient extends ActionBarActivity{//} implements PlayerNotificat
             public void onDnsSdServiceAvailable(String instanceName, String registrationType,
                                                 WifiP2pDevice resourceType) {
                 Log.d("service name",instanceName);
+                if(instanceName.equals("javabox")) {
+                    foundServer = true;
+                    findViewById(R.id.connect).setEnabled(true);
+                    ((Button)findViewById(R.id.connect)).setText("Connect to server");
+                }
                 // Update the device name with the human-friendly version from
                 // the DnsTxtRecord, assuming one arrived.
                 config = new WifiP2pConfig();
@@ -143,7 +152,7 @@ public class homeClient extends ActionBarActivity{//} implements PlayerNotificat
 
                     @Override
                     public void onFailure(int code) {
-                        Log.d("service","request failed");
+                        Log.e("service","request failed");
                         // Command failed.  Check for P2P_UNSUPPORTED, ERROR, or BUSY
                     }
                 });
@@ -164,6 +173,7 @@ public class homeClient extends ActionBarActivity{//} implements PlayerNotificat
 
     public void brodcastMessage(View view)//"Lets all make funof sam's spelling!"
     {
+
         String message = ((TextView)findViewById(R.id.send_song)).getText().toString();
         ((TextView)findViewById(R.id.send_song)).setText("");
         if(message!=null&&message.length()!=0) {
@@ -178,6 +188,18 @@ public class homeClient extends ActionBarActivity{//} implements PlayerNotificat
     public void changeArt(View view) {
         //v.changeArt(BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.record3));
         //System.out.println("add " + maps.get(0).uri + " to queue");
+        mManager.cancelConnect(mChannel, new WifiP2pManager.ActionListener() {
+            @Override
+            public void onSuccess() {
+                Log.i("canceled","canceled connect");
+            }
+
+            @Override
+            public void onFailure(int reason) {
+
+                Log.i("canceled","could not cancel connect"+reason);
+            }
+        });
     }
 
 

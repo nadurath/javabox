@@ -100,7 +100,7 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
         TextView artistView = (TextView) findViewById(R.id.artist);
         artistView.setText(t==null?"---":t.artists.get(0).name);
         TextView albumView = (TextView) findViewById(R.id.albumTitle);
-        albumView.setText(t==null?"---":t.album.name);
+        albumView.setText(t == null ? "---" : t.album.name);
 
 
         ListView listview = (ListView) findViewById(R.id.listView);
@@ -113,18 +113,12 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
 
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         mChannel = mManager.initialize(this, getMainLooper(), null);
-        startRegistration();
-        mManager.createGroup(mChannel, new WifiP2pManager.ActionListener() {
-            @Override
-            public void onSuccess() {
-                Log.d("p2p", "made group");
-            }
 
-            @Override
-            public void onFailure(int reasonCode) {
-                Log.d("p2p", "could not make group");
-            }
-        });
+        startRegistration();
+
+
+
+
 
     }
 
@@ -201,7 +195,7 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
         artistView.setText(artist);
         TextView albumView = (TextView) findViewById(R.id.albumTitle);
         albumView.setText(albumTitle);
-        //v.changeArt(t.albumArt);
+        //v.changeArt(t.album.images.get(0));
 
         //figure out how to seamlessly transition between songs
         //when the track changes, change the ImageView of the rotating record to the track.albumArt bitmap
@@ -258,7 +252,6 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
         record.put("listenport", String.valueOf(4206));
         record.put("buddyname", "John Doe" + (int) (Math.random() * 1000));
         record.put("available", "visible");
-
         // Service information.  Pass it an instance name, service type
         // _protocol._transportlayer , and the map containing
         // information other devices will want once they connect to this one.
@@ -268,6 +261,19 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
         // Add the local service, sending the service info, network channel,
         // and listener that will be used to indicate success or failure of
         // the request.
+        mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
+            @Override
+            public void onSuccess() {
+                Log.i("peers","searching for peers");
+            }
+
+            @Override
+            public void onFailure(int reason) {
+                Log.i("peers","not searching for peers");
+            }
+
+            });
+
         mManager.addLocalService(mChannel, serviceInfo, new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
@@ -279,16 +285,18 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
             @Override
             public void onFailure(int arg0) {
                 // Command failed.  Check for P2P_UNSUPPORTED, ERROR, or BUSY
-                Log.d("service","Service could not be started");
+                Log.e("service","Service could not be started");
             }
         });
     }
 
     public void playTrack(){//plays item 0 in maps
+        Log.d("player","playtrack called");
         if(maps.size()>0) {
             mPlayer.play(maps.get(0).uri);
             try {
                 new GetArt().execute(new URL(maps.get(0).album.images.get(0).url));
+                Log.i("getArt","called");
             } catch (MalformedURLException m) {
                 Log.e("URL", "bad album image URL");
             }
@@ -354,9 +362,10 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
     @Override
     public void onPlaybackEvent(EventType eventType, PlayerState playerState){
         Log.d("home class", "Playback event received: " + eventType.name());
-        if(eventType.equals(EventType.TRACK_END))
+        if(eventType.equals(EventType.BECAME_INACTIVE))
         {
             playNext();
+
         }
     }
 
@@ -373,6 +382,7 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
 
     private class GetArt extends AsyncTask<URL,Void , Bitmap> { //this is the getting art function
         protected Bitmap doInBackground(URL... url) {
+            Log.d("art","Art start "+url[0].toString());
             Bitmap image = null;
             try {
                  image = BitmapFactory.decodeStream(url[0].openConnection().getInputStream());
@@ -412,7 +422,7 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
                     ret = (mapsS.get(0));
             } catch (RetrofitError error) {
                 SpotifyError spotifyError = SpotifyError.fromRetrofitError(error);
-                Log.e("api",error.toString());
+                Log.e("api",spotifyError.toString());
 
             }
             return ret;
