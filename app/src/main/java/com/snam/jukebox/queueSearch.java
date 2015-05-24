@@ -91,7 +91,7 @@ public class queueSearch extends ActionBarActivity {
         CharSequence text = d.name + " has been added to the queue!";
         int duration = Toast.LENGTH_SHORT;
 
-        Toast toast = Toast.makeText(getApplicationContext(), text, duration);
+        Toast toast = Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT);
         toast.setGravity(Gravity.CENTER_VERTICAL, 0, 0);
         toast.show();
         homeServer.onSelectItem(getApplicationContext(), d.name);
@@ -138,7 +138,7 @@ public class queueSearch extends ActionBarActivity {
                 maps.clear();
                 TracksPager tracks = spotify.searchTracks(string[0]);//this is the actual call to the search
                 for(Track a:tracks.tracks.items) {
-                    ret += " \n" + a.name;;
+                    ret += " \n" + a.name;
                     maps.add(a);
                 }
             } catch (RetrofitError error) {

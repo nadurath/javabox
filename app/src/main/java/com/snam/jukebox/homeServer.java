@@ -5,18 +5,23 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
+import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pManager;
+import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.spotify.sdk.android.authentication.AuthenticationClient;
 import com.spotify.sdk.android.authentication.AuthenticationRequest;
@@ -28,10 +33,18 @@ import com.spotify.sdk.android.player.PlayerNotificationCallback;
 import com.spotify.sdk.android.player.PlayerState;
 import com.spotify.sdk.android.player.Spotify;
 
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
+import kaaes.spotify.webapi.android.SpotifyApi;
+import kaaes.spotify.webapi.android.SpotifyError;
+import kaaes.spotify.webapi.android.SpotifyService;
 import kaaes.spotify.webapi.android.models.Track;
+import kaaes.spotify.webapi.android.models.TracksPager;
+import retrofit.RetrofitError;
 
 public class homeServer extends ActionBarActivity implements PlayerNotificationCallback, ConnectionStateCallback {
 
@@ -48,7 +61,6 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
     private static ArrayList<Track> maps;
     WifiP2pManager mManager;
     WifiP2pManager.Channel mChannel;
-    Receive mReceiver;
     IntentFilter mIntentFilter;
 
     @Override
@@ -56,7 +68,7 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 //        t = new Track();
-        new Server(this).execute(new Object());
+        new Server(this).execute("Hello");
         if(maps==null)
             maps = new ArrayList<>();
         if(Singleton.getInstance().getSongs()!=null) {//if we already have a queue just add the song
@@ -88,7 +100,7 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
         TextView artistView = (TextView) findViewById(R.id.artist);
         artistView.setText(t==null?"---":t.artists.get(0).name);
         TextView albumView = (TextView) findViewById(R.id.albumTitle);
-        albumView.setText(t==null?"---":t.album.name);
+        albumView.setText(t == null ? "---" : t.album.name);
 
 
         ListView listview = (ListView) findViewById(R.id.listView);
@@ -99,18 +111,26 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
             listview.setAdapter(adapter);
         }
 
-
-
-        mIntentFilter = new IntentFilter();
-        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
-        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
-        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
-        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION); //this is all the connecting to other devices work
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         mChannel = mManager.initialize(this, getMainLooper(), null);
-        mReceiver = new Receive(mManager, mChannel, this);
+
+        startRegistration();
 
 
+
+
+
+    }
+
+    public void toastString(String string)
+    {
+        Toast toast = Toast.makeText(getApplicationContext(), string, Toast.LENGTH_SHORT);
+        toast.setGravity(Gravity.CENTER_VERTICAL, 0, 0);
+        toast.show();
+    }
+    public void restartServer()
+    {
+        new Server(this).execute("HELLO");//every time the server gets a message it closes, so this reopens it. This is actually on purpose though
     }
 
     @Override
@@ -122,9 +142,6 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
@@ -146,22 +163,25 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
             startActivity(i);
         }
     }
-
+    private WifiP2pConfig config;
     public void changeArt(View view) {
         //changeArt(BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.record3));
         //System.out.println("add " + maps.get(0).uri + " to queue");
         //mReceiver.requestPeers();
-        mManager.requestPeers(mChannel, new WifiP2pManager.PeerListListener() {
-            @Override
-            public void onPeersAvailable(WifiP2pDeviceList peer) {
-                ArrayList<WifiP2pDevice> peers = new ArrayList<>(peer.getDeviceList());
-                Log.d("p2pDevices",peers.toString());
-            }
-        });
     }
 
-    public void onTrackChange(View view){
+    public void brodcastMessage(View view)
+    {
 
+    }
+
+    public void searchAndPlay(String string)//this is called by the serer, right now client sends song title and we go from there
+    {
+        if(maps==null)
+            maps = new ArrayList<>();
+        new Search().execute(string);
+    }
+    public void onTrackChange(View view){
         //somehow get the track that is currently playing???????
 
         t = new Track(); //instead of new track, pull info for the track that begins playing NOW
@@ -175,7 +195,7 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
         artistView.setText(artist);
         TextView albumView = (TextView) findViewById(R.id.albumTitle);
         albumView.setText(albumTitle);
-        //v.changeArt(t.albumArt);
+        //v.changeArt(t.album.images.get(0));
 
         //figure out how to seamlessly transition between songs
         //when the track changes, change the ImageView of the rotating record to the track.albumArt bitmap
@@ -189,9 +209,11 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
         super.onActivityResult(requestCode,resultCode,intent);
         // Check if result comes from the correct activity
         if (requestCode == REQUEST_CODE) {
+            Log.d("token","Checked request code");
             AuthenticationResponse response = AuthenticationClient.getResponse(resultCode, intent);
             if (response.getType() == AuthenticationResponse.Type.TOKEN) {
                 token = response.getAccessToken();
+                Log.d("token", "token filled");
                 Config playerConfig = new Config(this, response.getAccessToken(), CLIENT_ID);
                 mPlayer = Spotify.getPlayer(playerConfig, this, new Player.InitializationObserver() {
                     @Override
@@ -220,10 +242,96 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
                 });
             }
         }
+        else
+            Log.d("token", "incorrect request code");
     }
 
-    public void playTrack(){
-        mPlayer.play(maps.get(0).uri);
+    private void startRegistration() {
+        //  Create a string map containing information about your service.
+        Map record = new HashMap();
+        record.put("listenport", String.valueOf(4206));
+        record.put("buddyname", "John Doe" + (int) (Math.random() * 1000));
+        record.put("available", "visible");
+        // Service information.  Pass it an instance name, service type
+        // _protocol._transportlayer , and the map containing
+        // information other devices will want once they connect to this one.
+        WifiP2pDnsSdServiceInfo serviceInfo =
+                WifiP2pDnsSdServiceInfo.newInstance("javabox", "_presence._tcp", record);
+
+        // Add the local service, sending the service info, network channel,
+        // and listener that will be used to indicate success or failure of
+        // the request.
+        mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
+            @Override
+            public void onSuccess() {
+                Log.i("peers","searching for peers");
+            }
+
+            @Override
+            public void onFailure(int reason) {
+                Log.i("peers","not searching for peers");
+            }
+
+            });
+
+        mManager.addLocalService(mChannel, serviceInfo, new WifiP2pManager.ActionListener() {
+            @Override
+            public void onSuccess() {
+                // Command successful! Code isn't necessarily needed here,
+                // Unless you want to update the UI or add logging statements.
+                Log.d("service","Service started");
+            }
+
+            @Override
+            public void onFailure(int arg0) {
+                // Command failed.  Check for P2P_UNSUPPORTED, ERROR, or BUSY
+                Log.e("service","Service could not be started");
+            }
+        });
+    }
+
+    public void playTrack(){//plays item 0 in maps
+        Log.d("player","playtrack called");
+        if(maps.size()>0) {
+            mPlayer.play(maps.get(0).uri);
+            try {
+                new GetArt().execute(new URL(maps.get(0).album.images.get(0).url));
+                Log.i("getArt","called");
+            } catch (MalformedURLException m) {
+                Log.e("URL", "bad album image URL");
+            }
+            Track t = maps.get(0);
+            songTitle = t.name;
+            artist = t.artists.get(0).name;
+            albumTitle = t.album.name;
+            TextView songView = (TextView) findViewById(R.id.songTitle);
+            songView.setText(songTitle);
+            TextView artistView = (TextView) findViewById(R.id.artist);
+            artistView.setText(artist);
+            TextView albumView = (TextView) findViewById(R.id.albumTitle);
+            albumView.setText(albumTitle);
+        }
+        else
+            mPlayer.pause();
+    }
+    public void skip(View view){playNext();}//take a guess as to what these two do
+    public void playNext(){
+        if(maps.size()>0)
+            maps.remove(0);
+        playTrack();
+        ListView listview = (ListView) findViewById(R.id.listView);
+        SongAdapter adapter = new SongAdapter(this, R.layout.song_cell, maps);
+        listview.setAdapter(adapter);
+
+    }
+    public void addTrack(Track track)
+    {
+        maps.add(track);
+        if(maps.size()==1)
+            playTrack();//if we just added the only song
+        ListView listview = (ListView) findViewById(R.id.listView);
+            SongAdapter adapter = new SongAdapter(this, R.layout.song_cell, maps);
+            listview.setAdapter(adapter);
     }
 
     @Override
@@ -254,6 +362,11 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
     @Override
     public void onPlaybackEvent(EventType eventType, PlayerState playerState){
         Log.d("home class", "Playback event received: " + eventType.name());
+        if(eventType.equals(EventType.BECAME_INACTIVE))
+        {
+            playNext();
+
+        }
     }
 
     @Override
@@ -269,6 +382,7 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
 
     private class GetArt extends AsyncTask<URL,Void , Bitmap> { //this is the getting art function
         protected Bitmap doInBackground(URL... url) {
+            Log.d("art","Art start "+url[0].toString());
             Bitmap image = null;
             try {
                  image = BitmapFactory.decodeStream(url[0].openConnection().getInputStream());
@@ -278,10 +392,43 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
             return image;
         }
         protected void onPostExecute(Bitmap result) {
+           Log.d("art","art found");
             if(result!=null)
                 v.changeArt(result);
             else
                 Log.e("art","the art was null");
+        }
+    }
+
+    private class Search extends AsyncTask<String,Void , Track> {
+     //this is the searching function again, I stole it from the other class for testing things
+        protected Track doInBackground(String... string) {         //this version is not really to be used, and plays immediatly
+            if(token == null)
+                Log.e("token", "no token given");
+            else
+                Log.e("token", "token is: "+token);
+            SpotifyApi api = new SpotifyApi();
+            api.setAccessToken(token);
+            //Log.d("search",token);
+            Track ret = new Track();
+            ArrayList<Track> mapsS = new ArrayList<>();
+            SpotifyService spotify = api.getService();
+            try {
+                TracksPager tracks = spotify.searchTracks(string[0]);//this is the actual call to the search
+                for(Track a:tracks.tracks.items) {
+                    mapsS.add(a);
+                }
+                if(mapsS.size()>1)
+                    ret = (mapsS.get(0));
+            } catch (RetrofitError error) {
+                SpotifyError spotifyError = SpotifyError.fromRetrofitError(error);
+                Log.e("api",spotifyError.toString());
+
+            }
+            return ret;
+        }
+        protected void onPostExecute(Track result) {
+            addTrack(result);
         }
     }
 }

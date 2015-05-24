@@ -85,34 +85,14 @@
         />
     <!--android:minHeight="100dp"
         android:maxHeight="100dp"-->
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Skip"
-        android:id="@+id/connect"
-        android:onClick="skip"
-        android:layout_marginTop="20dp"
-        android:layout_marginLeft="20dp"
-        android:layout_below="@id/songProgress"
-        android:layout_toRightOf="@+id/queueNewTrack"
-        android:layout_toEndOf="@+id/queueNewTrack" />
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/queueNewTrack"
-        android:text="Queue New Track"
-        android:layout_below="@id/songProgress"
-        android:layout_alignLeft="@id/songProgress"
-        android:layout_alignStart="@id/songProgress"
-        android:layout_marginTop="20dp"
-        android:onClick="queueNew"/>
+
 
     <ImageView
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
         android:background="#000000"
         android:layout_below="@id/connect"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="10dp"
         android:id="@+id/imageView" />
     <ListView
         android:background="#000000"
@@ -123,6 +103,43 @@
         android:layout_alignParentStart="true"
         android:layout_below="@id/connect"
         android:layout_marginTop="20dp"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Send song request"
+        android:enabled="false"
+        android:id="@+id/send"
+        android:onClick="brodcastMessage"
+        android:layout_alignParentRight="true"
+        android:layout_below="@+id/connect"
+        android:layout_marginRight="5dp"
+        android:layout_marginTop="20dp"/>
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="No servers found"
+        android:id="@+id/connect"
+        android:onClick="connectServer"
+        android:layout_alignLeft="@id/send"
+        android:layout_alignStart="@id/send"
+        android:layout_below="@id/songProgress"
+        android:layout_alignParentRight="true"
+        android:layout_marginTop="20dp"
+        android:layout_marginRight="5dp"
+        android:layout_toRightOf="@+id/queueNewTrack"
+        android:enabled="false"
+        android:layout_toEndOf="@+id/queueNewTrack" />
+
+    <EditText
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/send_song"
+        android:hint="Enter song"
+        android:layout_alignTop="@+id/imageView"
+        android:textColor="#ffffff"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true" />
 
 
 </RelativeLayout>
