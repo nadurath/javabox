@@ -19,6 +19,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -90,7 +91,7 @@ public class homeClient extends ActionBarActivity{//} implements PlayerNotificat
         mManager.connect(mChannel, config, new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
-                Log.d("service","Connected");
+                Log.d("service", "Connected");
                 mManager.requestConnectionInfo(mChannel, new WifiP2pManager.ConnectionInfoListener() {
                     @Override
                     public void onConnectionInfoAvailable(WifiP2pInfo sinfo) {
@@ -102,7 +103,7 @@ public class homeClient extends ActionBarActivity{//} implements PlayerNotificat
 
             @Override
             public void onFailure(int reason) {
-                Log.d("service","not Connected"+reason);
+                Log.d("service", "not Connected" + reason);
             }
         });
     }
@@ -164,8 +165,12 @@ public class homeClient extends ActionBarActivity{//} implements PlayerNotificat
     public void brodcastMessage(View view)//"Lets all make funof sam's spelling!"
     {
         String message = ((TextView)findViewById(R.id.send_song)).getText().toString();
-        if(message!=null&&message.length()!=0)
-           new PostMessage().execute(message);
+        ((TextView)findViewById(R.id.send_song)).setText("");
+        if(message!=null&&message.length()!=0) {
+            new PostMessage().execute(message);
+            Toast.makeText(this,message+" requested!",
+                    Toast.LENGTH_SHORT).show();
+        }
     }
     private WifiP2pConfig config;
 

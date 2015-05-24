@@ -174,13 +174,6 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
         //changeArt(BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.record3));
         //System.out.println("add " + maps.get(0).uri + " to queue");
         //mReceiver.requestPeers();
-        mManager.requestPeers(mChannel, new WifiP2pManager.PeerListListener() {
-            @Override
-            public void onPeersAvailable(WifiP2pDeviceList peer) {
-                ArrayList<WifiP2pDevice> peers = new ArrayList<>(peer.getDeviceList());
-                Log.d("p2pDevices",peers.toString());
-            }
-        });
     }
 
     public void brodcastMessage(View view)
@@ -299,11 +292,21 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
             } catch (MalformedURLException m) {
                 Log.e("URL", "bad album image URL");
             }
+            Track t = maps.get(0);
+            songTitle = t.name;
+            artist = t.artists.get(0).name;
+            albumTitle = t.album.name;
+            TextView songView = (TextView) findViewById(R.id.songTitle);
+            songView.setText(songTitle);
+            TextView artistView = (TextView) findViewById(R.id.artist);
+            artistView.setText(artist);
+            TextView albumView = (TextView) findViewById(R.id.albumTitle);
+            albumView.setText(albumTitle);
         }
         else
             mPlayer.pause();
     }
-    public void skip(View view){playNext();}//take a guess as to what this two do
+    public void skip(View view){playNext();}//take a guess as to what these two do
     public void playNext(){
         if(maps.size()>0)
             maps.remove(0);
@@ -311,6 +314,7 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
         ListView listview = (ListView) findViewById(R.id.listView);
         SongAdapter adapter = new SongAdapter(this, R.layout.song_cell, maps);
         listview.setAdapter(adapter);
+
     }
     public void addTrack(Track track)
     {
@@ -350,6 +354,10 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
     @Override
     public void onPlaybackEvent(EventType eventType, PlayerState playerState){
         Log.d("home class", "Playback event received: " + eventType.name());
+        if(eventType.equals(EventType.TRACK_END))
+        {
+            playNext();
+        }
     }
 
     @Override
