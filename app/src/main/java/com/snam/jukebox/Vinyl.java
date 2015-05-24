@@ -105,28 +105,6 @@ public class Vinyl {
     {
         Bitmap unArt;
         record = oRecord.copy(oRecord.getConfig(),true);
-
-        switch((int)(Math.random()*5))
-        {
-            case 0:
-                unArt = BitmapFactory.decodeResource(context.getResources(), R.drawable.images);
-                break;
-            case 1:
-                unArt = BitmapFactory.decodeResource(context.getResources(), R.drawable.one);
-                break;
-            case 2:
-                unArt = BitmapFactory.decodeResource(context.getResources(), R.drawable.two);
-                break;
-            case 3:
-                unArt = BitmapFactory.decodeResource(context.getResources(), R.drawable.three);
-                break;
-            case 4:
-                unArt = BitmapFactory.decodeResource(context.getResources(), R.drawable.four);
-                break;
-            default:
-                unArt = BitmapFactory.decodeResource(context.getResources(), R.drawable.four);
-
-        }
         unArt = x;
         Bitmap art = unArt.copy(Bitmap.Config.ARGB_8888, true);
         art = Bitmap.createScaledBitmap(art,record.getWidth(), record.getHeight(),false);

@@ -30,6 +30,18 @@ public class Receive extends BroadcastReceiver implements WifiP2pManager.Connect
         channel = chan;
         activity = act;
         Log.d("receive", "object created at least");
+        manager.removeGroup(channel, new WifiP2pManager.ActionListener() {
+            @Override
+            public void onSuccess() {
+                Log.d("removeGroup", "succeeded");
+            }
+
+            @Override
+            public void onFailure(int reason) {
+                Log.d("removeGroup","did not succeed");
+            }
+        });
+        manager.cancelConnect(channel, null);
     }
 
     @Override
@@ -51,8 +63,11 @@ public class Receive extends BroadcastReceiver implements WifiP2pManager.Connect
                     public void onPeersAvailable(WifiP2pDeviceList peerList) {
                         peers = new ArrayList<>(peerList.getDeviceList());
                         Log.d("p2pPeers", peers.size() == 1 ? "found 1 peer" : "found " + peers.size() + " peers");
-                        if(peers.size()>0)
-                            ((homeClient)activity).connectToDevice(peers.get(0));
+                        if(peers.size()>0) {
+                            ((homeClient) activity).connectToDevice(peers.get(0));
+                            if(activity instanceof homeServer)
+                                ((homeServer) activity).connectToDevice(peers.get(0));
+                        }
                     }
                 });
             }

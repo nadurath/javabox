@@ -56,6 +56,8 @@ public class homeClient extends ActionBarActivity implements WifiP2pManager.Conn
         mReceiver = new Receive(mManager, mChannel, this);
         ListView listview = (ListView) findViewById(R.id.listView);
         connectServer(null);
+
+
     }
 
     /* register the broadcast receiver with the intent values to be matched */
@@ -113,15 +115,25 @@ public class homeClient extends ActionBarActivity implements WifiP2pManager.Conn
 
             @Override
             public void onFailure(int reasonCode) {
-                Log.d("p2p","Discover peers failed because "+reasonCode);
+                Log.d("p2p","Discover peers failed because "+reasonCode );
             }
         });
     }
-
     public void connectToDevice(WifiP2pDevice device)
     {
         config = new WifiP2pConfig();
         config.deviceAddress = device.deviceAddress;
+        mManager.cancelConnect(mChannel, new WifiP2pManager.ActionListener() {
+            @Override
+            public void onSuccess() {
+
+            }
+
+            @Override
+            public void onFailure(int reason) {
+
+            }
+        });
         mManager.connect(mChannel, config, new WifiP2pManager.ActionListener() {
 
             @Override
@@ -132,7 +144,7 @@ public class homeClient extends ActionBarActivity implements WifiP2pManager.Conn
 
             @Override
             public void onFailure(int reason) {
-                Log.e("p2pconnect","Could not connect to device");
+                Log.e("p2pconnect","Could not connect to device"+reason);
             }
         });
     }
@@ -154,7 +166,7 @@ public class homeClient extends ActionBarActivity implements WifiP2pManager.Conn
             @Override
             public void onPeersAvailable(WifiP2pDeviceList peer) {
                 ArrayList<WifiP2pDevice> peers = new ArrayList<>(peer.getDeviceList());//using record as testing button
-                Log.d("p2pDevices",peers.toString());
+                Log.d("p2pDevices", peers.toString());
             }
         });
     }
@@ -230,6 +242,7 @@ public class homeClient extends ActionBarActivity implements WifiP2pManager.Conn
                                 socket.close();
                             } catch (IOException e) {
                                 Log.e("p2pdata",e.toString());
+
                             }
                         }
                     }

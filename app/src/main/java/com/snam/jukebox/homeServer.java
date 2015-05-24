@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pGroup;
@@ -31,6 +32,7 @@ import com.spotify.sdk.android.player.PlayerNotificationCallback;
 import com.spotify.sdk.android.player.PlayerState;
 import com.spotify.sdk.android.player.Spotify;
 
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 
@@ -175,7 +177,25 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
             startActivity(i);
         }
     }
+    private WifiP2pConfig config;
+    public void connectToDevice(WifiP2pDevice device)
+    {
+        config = new WifiP2pConfig();
+        config.deviceAddress = device.deviceAddress;
+            mManager.connect(mChannel, config, new WifiP2pManager.ActionListener() {
 
+                @Override
+                public void onSuccess() {
+                    Log.d("p2pconnect","Connected to device");
+                    Log.d("p2pConnect",config.deviceAddress);
+                }
+
+                @Override
+                public void onFailure(int reason) {
+                    Log.e("p2pconnect","Could not connect to device");
+                }
+            });
+    }
     public void changeArt(View view) {
         //changeArt(BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.record3));
         //System.out.println("add " + maps.get(0).uri + " to queue");
@@ -229,6 +249,7 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
         super.onActivityResult(requestCode,resultCode,intent);
         // Check if result comes from the correct activity
         if (requestCode == REQUEST_CODE) {
+            Log.d("token","Checked request code");
             AuthenticationResponse response = AuthenticationClient.getResponse(resultCode, intent);
             if (response.getType() == AuthenticationResponse.Type.TOKEN) {
                 token = response.getAccessToken();
@@ -261,10 +282,36 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
                 });
             }
         }
+        else
+            Log.d("token", "incorrect request code");
     }
 
     public void playTrack(){
-        mPlayer.play(maps.get(0).uri);
+        if(maps.size()>0) {
+            mPlayer.play(maps.get(0).uri);
+            try {
+                new GetArt().execute(new URL(maps.get(0).album.images.get(0).url));
+            } catch (MalformedURLException m) {
+                Log.e("URL", "bad album image URL");
+            }
+        }
+    }
+    public void skip(View view){playNext();}
+    public void playNext(){
+        if(maps.size()>1)
+            maps.remove(0);
+        playTrack();
+    }
+    public void addTrack(Track track)
+    {
+        maps.add(track);
+        if(maps.size()==1)
+            playTrack();
+        ListView listview = (ListView) findViewById(R.id.listView);
+        if(maps.size()>0) {
+            SongAdapter adapter = new SongAdapter(this, R.layout.song_cell, maps);
+            listview.setAdapter(adapter);
+        }
     }
 
     @Override
@@ -319,6 +366,7 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
             return image;
         }
         protected void onPostExecute(Bitmap result) {
+           Log.d("art","art found");
             if(result!=null)
                 v.changeArt(result);
             else
@@ -326,8 +374,9 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
         }
     }
 
-    private class Search extends AsyncTask<String,Void , String> { //this is the searching function again, I stole it from the other class for testing things
-        protected String doInBackground(String... string) {         //this version is not really to be used, and plays immediatly
+    private class Search extends AsyncTask<String,Void , Track> {
+     //this is the searching function again, I stole it from the other class for testing things
+        protected Track doInBackground(String... string) {         //this version is not really to be used, and plays immediatly
             if(token == null)
                 Log.e("token", "no token given");
             else
@@ -335,26 +384,25 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
             SpotifyApi api = new SpotifyApi();
             api.setAccessToken(token);
             //Log.d("search",token);
-            String ret = "\n";
+            Track ret = new Track();
             ArrayList<Track> mapsS = new ArrayList<>();
             SpotifyService spotify = api.getService();
             try {
                 TracksPager tracks = spotify.searchTracks(string[0]);//this is the actual call to the search
                 for(Track a:tracks.tracks.items) {
-                    ret += " \n" + a.name;
                     mapsS.add(a);
                 }
-                maps.add(mapsS.get(0));
+                if(mapsS.size()>1)
+                    ret = (mapsS.get(0));
             } catch (RetrofitError error) {
                 SpotifyError spotifyError = SpotifyError.fromRetrofitError(error);
                 Log.e("api",error.toString());
-            }
 
+            }
             return ret;
         }
-        protected void onPostExecute(String result) {
-            Log.d("search", result);
-            playTrack();
+        protected void onPostExecute(Track result) {
+            addTrack(result);
         }
     }
 }
