@@ -104,7 +104,8 @@ public class queueSearch extends ActionBarActivity {
 
     public void search(View view){
         SearchView searchView = (SearchView) findViewById(R.id.searchBarD);
-        new Search().execute(searchView.getQuery().toString());                 //this does the search and passes the string to it
+        String text = searchView.getQuery().toString();
+        new Search().execute(text);                 //this does the search and passes the string to it
         //System.out.println(searchView.getQuery());
         //addTrack(searchView.getQuery().toString());
     }
@@ -128,10 +129,15 @@ public class queueSearch extends ActionBarActivity {
 
     }
     private class Search extends AsyncTask<String,Void , String> { //this is the searching function
+
+        public Search()
+        {
+            Log.i("search","search made");
+        }
         protected String doInBackground(String... string) {
+            Log.d("search",token+" <-- Token");
             SpotifyApi api = new SpotifyApi();
             api.setAccessToken(token);
-            Log.d("search",token);
             String ret = "\n";
             SpotifyService spotify = api.getService();
             try {

@@ -5,6 +5,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.nsd.NsdManager;
+import android.net.nsd.NsdServiceInfo;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
@@ -61,14 +63,13 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
     private static ArrayList<Track> maps;
     WifiP2pManager mManager;
     WifiP2pManager.Channel mChannel;
-    IntentFilter mIntentFilter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 //        t = new Track();
-        new Server(this).execute("Hello");
+        //new Server(this).execute("Hello");
         if(maps==null)
             maps = new ArrayList<>();
         if(Singleton.getInstance().getSongs()!=null) {//if we already have a queue just add the song
@@ -92,16 +93,6 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
 
         AuthenticationClient.openLoginActivity(this, REQUEST_CODE, request);
 
-        v = new Vinyl(getApplication(), findViewById(R.id.albumArtwork));
-        v.changeArt(BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.record3));
-
-        TextView songView = (TextView) findViewById(R.id.songTitle);
-        songView.setText(t==null?"---":t.name);
-        TextView artistView = (TextView) findViewById(R.id.artist);
-        artistView.setText(t==null?"---":t.artists.get(0).name);
-        TextView albumView = (TextView) findViewById(R.id.albumTitle);
-        albumView.setText(t == null ? "---" : t.album.name);
-
 
         ListView listview = (ListView) findViewById(R.id.listView);
 
@@ -114,8 +105,8 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         mChannel = mManager.initialize(this, getMainLooper(), null);
 
-        startRegistration();
-
+        //startRegistration();
+    registerService();
 
 
 
@@ -203,6 +194,22 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
         //when the track changes, change all of the textview to track.title / track.album / track.artist and so on and so forth
 
     }
+    @Override
+    protected void onStop() {
+        Log.i("onStop", "onstop called");
+        if (mManager != null && mChannel != null) {
+            mManager.removeGroup(mChannel, new WifiP2pManager.ActionListener() {
+                @Override
+                public void onFailure(int reasonCode) {
+                    Log.d("stopped", "Disconnect failed. Reason :" + reasonCode);
+                }
+                @Override
+                public void onSuccess() {
+                }
+            });
+        }
+        super.onStop();
+    }
     String token;
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent intent){
@@ -226,7 +233,7 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
                             Log.d("arturl",maps.get(0).album.images.get(0).url);
                             try {
                                 URL url = new URL(maps.get(0).album.images.get(0).url);
-                                new GetArt().execute(url);
+                                //new GetArt().execute(url);
                             }
                             catch(Exception e)
                             {
@@ -245,61 +252,66 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
         else
             Log.d("token", "incorrect request code");
     }
+    NsdManager mNsdManager;
+    public void registerService()
+    {
+        NsdServiceInfo serviceInfo = new NsdServiceInfo();
+        serviceInfo.setServiceName("Javabox");
+        serviceInfo.setServiceType("_http._tcp.");
+        serviceInfo.setPort(4206);
+        new Server(this).execute("Server");
+        initializeRegistrationListener();
+        mNsdManager = (NsdManager)getSystemService(Context.NSD_SERVICE);
 
-    private void startRegistration() {
-        //  Create a string map containing information about your service.
-        Map record = new HashMap();
-        record.put("listenport", String.valueOf(4206));
-        record.put("buddyname", "John Doe" + (int) (Math.random() * 1000));
-        record.put("available", "visible");
-        // Service information.  Pass it an instance name, service type
-        // _protocol._transportlayer , and the map containing
-        // information other devices will want once they connect to this one.
-        WifiP2pDnsSdServiceInfo serviceInfo =
-                WifiP2pDnsSdServiceInfo.newInstance("javabox", "_presence._tcp", record);
-
-        // Add the local service, sending the service info, network channel,
-        // and listener that will be used to indicate success or failure of
-        // the request.
-        mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
-            @Override
-            public void onSuccess() {
-                Log.i("peers","searching for peers");
-            }
-
-            @Override
-            public void onFailure(int reason) {
-                Log.i("peers","not searching for peers");
-            }
-
-            });
-
-        mManager.addLocalService(mChannel, serviceInfo, new WifiP2pManager.ActionListener() {
-            @Override
-            public void onSuccess() {
-                // Command successful! Code isn't necessarily needed here,
-                // Unless you want to update the UI or add logging statements.
-                Log.d("service","Service started");
-            }
-
-            @Override
-            public void onFailure(int arg0) {
-                // Command failed.  Check for P2P_UNSUPPORTED, ERROR, or BUSY
-                Log.e("service","Service could not be started");
-            }
-        });
+        mNsdManager.registerService(
+                serviceInfo, NsdManager.PROTOCOL_DNS_SD, mRegistrationListener);
     }
+    NsdManager.RegistrationListener mRegistrationListener;
+    public void initializeRegistrationListener() {
+        mRegistrationListener = new NsdManager.RegistrationListener() {
+
+            @Override
+            public void onServiceRegistered(NsdServiceInfo NsdServiceInfo) {
+                // Save the service name.  Android may have changed it in order to
+                // resolve a conflict, so update the name you initially requested
+                // with the name Android actually used.
+                 Log.i("service started", "Started as :"+NsdServiceInfo.getServiceName());
+            }
+
+            @Override
+            public void onRegistrationFailed(NsdServiceInfo serviceInfo, int errorCode) {
+                // Registration failed!  Put debugging code here to determine why.
+
+                Log.e("service failed to start", ""+errorCode);
+            }
+
+            @Override
+            public void onServiceUnregistered(NsdServiceInfo arg0) {
+                // Service has been unregistered.  This only happens when you call
+                // NsdManager.unregisterService() and pass in this listener.
+                Log.i("service ended", "success");
+            }
+
+            @Override
+            public void onUnregistrationFailed(NsdServiceInfo serviceInfo, int errorCode) {
+                // Unregistration failed.  Put debugging code here to determine why.
+
+                Log.i("service ended", "success");
+            }
+        };
+    }
+
 
     public void playTrack(){//plays item 0 in maps
         Log.d("player","playtrack called");
         if(maps.size()>0) {
             mPlayer.play(maps.get(0).uri);
-            try {
-                new GetArt().execute(new URL(maps.get(0).album.images.get(0).url));
-                Log.i("getArt","called");
-            } catch (MalformedURLException m) {
-                Log.e("URL", "bad album image URL");
-            }
+//            try {
+//                //new GetArt().execute(new URL(maps.get(0).album.images.get(0).url));
+//                Log.i("getArt","called");
+//            } catch (MalformedURLException m) {
+//                Log.e("URL", "bad album image URL");
+//            }
             Track t = maps.get(0);
             songTitle = t.name;
             artist = t.artists.get(0).name;
