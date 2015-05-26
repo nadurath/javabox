@@ -203,6 +203,7 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
                 public void onFailure(int reasonCode) {
                     Log.d("stopped", "Disconnect failed. Reason :" + reasonCode);
                 }
+
                 @Override
                 public void onSuccess() {
                 }
@@ -336,14 +337,15 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
         listview.setAdapter(adapter);
 
     }
-    public void addTrack(Track track)
-    {
-        maps.add(track);
-        if(maps.size()==1)
-            playTrack();//if we just added the only song
-        ListView listview = (ListView) findViewById(R.id.listView);
+    public void addTrack(Track track) {
+        if (track != null) {
+            maps.add(track);
+            if (maps.size() == 1)
+                playTrack();//if we just added the only song
+            ListView listview = (ListView) findViewById(R.id.listView);
             SongAdapter adapter = new SongAdapter(this, R.layout.song_cell, maps);
             listview.setAdapter(adapter);
+        }
     }
 
     @Override
@@ -374,6 +376,7 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
     @Override
     public void onPlaybackEvent(EventType eventType, PlayerState playerState){
         Log.d("home class", "Playback event received: " + eventType.name());
+        Log.d("home class", "Plaayer state: " + playerState.playing);
         if(eventType.equals(EventType.BECAME_INACTIVE))
         {
             playNext();
