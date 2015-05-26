@@ -3,10 +3,9 @@ apply plugin: 'com.android.application'
 android {
     compileSdkVersion 21
     buildToolsVersion "21.1.2"
-
     defaultConfig {
         applicationId "com.snam.jukebox"
-        minSdkVersion 16
+        minSdkVersion 19
         targetSdkVersion 21
         versionCode 1
         versionName "1.0"
@@ -16,6 +15,8 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
+    }
+    productFlavors {
     }
 }
 
@@ -27,10 +28,9 @@ repositories{
 }
 
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile fileTree(include: ['*.jar'], dir: 'libs')
     compile 'com.spotify.sdk:spotify-auth:1.0.0-beta10@aar'
     compile 'com.spotify.sdk:spotify-player:1.0.0-beta10@aar'
     compile 'com.android.support:appcompat-v7:22.0.0'
     compile files('spotify-web-api-android-all-0.1.0.jar')
-
 }

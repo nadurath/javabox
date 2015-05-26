@@ -15,7 +15,7 @@
         android:typeface="serif"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="250dp"
+        android:layout_marginTop="150dp"
         android:layout_centerHorizontal="true"
         />
 
@@ -30,24 +30,15 @@
         android:textSize="20dp"
         android:textColor="#FFFFFF"/>
 
-    <EditText
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/serverKey"
-        android:id="@+id/serverKeyEntry"
-        android:typeface="serif"
-        android:textColor="#FFFFFF"
-        android:layout_centerHorizontal="true"
-        android:inputType="numberPassword"/>
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@id/serverKeyEntry"
         android:id="@+id/nextAct"
         android:typeface="serif"
         android:text="@string/enterKey"
         android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
         android:onClick="nextActivity"/>
 
     <Button
@@ -56,7 +47,7 @@
         android:layout_below="@id/nextAct"
         android:id="@+id/serverButton"
         android:typeface="serif"
-        android:text="Host server"
+        android:text="Host."
         android:layout_centerHorizontal="true"
         android:onClick="hostServer"/>
 
