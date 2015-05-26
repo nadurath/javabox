@@ -1,5 +1,6 @@
 package com.snam.jukebox;
 
+import android.app.Activity;
 import android.content.Context;
 import android.net.nsd.NsdManager;
 import android.net.nsd.NsdServiceInfo;
@@ -8,11 +9,17 @@ import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceRequest;
 import android.net.wifi.p2p.nsd.WifiP2pServiceRequest;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.view.animation.LinearInterpolator;
+import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -23,8 +30,9 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.ArrayList;
 
-public class homeClient extends ActionBarActivity{
+public class homeClient extends Activity {
 
     //private static Vinyl v;
     private NsdManager.DiscoveryListener mDiscoveryListener;
@@ -40,6 +48,8 @@ public class homeClient extends ActionBarActivity{
         initializeResolveListener();
         start();
     }
+
+
 
     private void start()
     {
@@ -137,52 +147,129 @@ public class homeClient extends ActionBarActivity{
     protected void onPause() {
         super.onPause();
     }
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_home, menu);
-        return true;
-    }
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-
-    public static void onSelectItem(Context context, String songChoice){
-        System.out.println("add " + songChoice + " to queue");
-    }
-
-
 
     public void brodcastMessage(View view)//"Lets all make funof sam's spelling!"
     {
 
-        String message = ((TextView)findViewById(R.id.send_song)).getText().toString();
-        ((TextView)findViewById(R.id.send_song)).setText("");
+        String message = ((TextView)findViewById(R.id.songText)).getText().toString();
+
         if(message!=null&&message.length()!=0) {
-            new PostMessage().execute(message);
-            Toast.makeText(this,message+" requested!",
-                    Toast.LENGTH_SHORT).show();
+            if(mService==null) {
+                animateMessage("I haven't found the server yet. Make sure you two are on the same network",5000);
+            }
+            else
+                new PostMessage().execute(message);
         }
     }
-
-
-    public void changeArt(View view) {
-        //v.changeArt(BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.record3));
-        //System.out.println("add " + maps.get(0).uri + " to queue");
+    public void sentMessage()
+    {
+        ((TextView)findViewById(R.id.songText)).setText("");
+        animateMessage(sent(),2000);
+    }
+    public void messageNotSent()
+    {
+        animateMessage("Something went wrong... Try again in a moment",2000);
     }
 
+    private void animateMessage(final String s, final long messageTime)
+    {
+        TextView text = (TextView)findViewById(R.id.nowPlay);
+        Animation mLoadAnimation = AnimationUtils.loadAnimation(getApplicationContext(), android.R.anim.fade_out);
+        mLoadAnimation.setDuration(500);
+        mLoadAnimation.setFillBefore(true);
+        mLoadAnimation.setInterpolator(new LinearInterpolator());
+        mLoadAnimation.setAnimationListener(new Animation.AnimationListener() {
+            @Override
+            public void onAnimationStart(Animation animation) {
 
+            }
+
+            @Override
+            public void onAnimationEnd(Animation animation) {
+
+
+                TextView text = (TextView) findViewById(R.id.nowPlay);
+                text.setText(s);
+                Animation mLoadAnimation = AnimationUtils.loadAnimation(getApplicationContext(), android.R.anim.fade_in);
+                mLoadAnimation.setDuration(500);
+                mLoadAnimation.setFillAfter(true);
+                mLoadAnimation.setInterpolator(new LinearInterpolator());
+                mLoadAnimation.setAnimationListener(new Animation.AnimationListener() {
+                    @Override
+                    public void onAnimationStart(Animation animation) {
+
+                    }
+
+                    @Override
+                    public void onAnimationEnd(Animation animation) {
+
+                        new Handler().postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                TextView text = (TextView) findViewById(R.id.nowPlay);
+                                Animation mLoadAnimation = AnimationUtils.loadAnimation(getApplicationContext(), android.R.anim.fade_out);
+                                mLoadAnimation.setDuration(500);
+                                mLoadAnimation.setFillAfter(true);
+                                mLoadAnimation.setInterpolator(new LinearInterpolator());
+                                mLoadAnimation.setAnimationListener(new Animation.AnimationListener() {
+                                    @Override
+                                    public void onAnimationStart(Animation animation) {
+
+                                    }
+
+                                    @Override
+                                    public void onAnimationEnd(Animation animation) {
+                                        TextView text = (TextView) findViewById(R.id.nowPlay);
+                                        text.setText("What would you like to hear next?");
+                                        Animation mLoadAnimation = AnimationUtils.loadAnimation(getApplicationContext(), android.R.anim.fade_in);
+                                        mLoadAnimation.setDuration(500);
+                                        mLoadAnimation.setFillAfter(true);
+                                        mLoadAnimation.setInterpolator(new LinearInterpolator());
+                                        text.startAnimation(mLoadAnimation);
+                                    }
+
+                                    @Override
+                                    public void onAnimationRepeat(Animation animation) {
+
+                                    }
+                                });
+                                text.startAnimation(mLoadAnimation);
+                            }
+                        }, messageTime);
+                    }
+
+                    @Override
+                    public void onAnimationRepeat(Animation animation) {
+
+                    }
+                });
+                text.startAnimation(mLoadAnimation);
+            }
+
+            @Override
+            public void onAnimationRepeat(Animation animation) {
+
+            }
+        });
+        text.startAnimation(mLoadAnimation);
+    }
+    private String sent()
+    {
+        ArrayList<String> responces = new ArrayList<>();
+        responces.add("Interesting choice. We'll see how they like it");
+        responces.add("I'll make it happen");
+        responces.add("I'll see if I can find that");
+        responces.add("Coming right up");
+        responces.add("Let's hope everyone is up for that");
+        responces.add("That's one of my favorites actually");
+        responces.add("On its way to the server now");
+        responces.add("Here we go");
+        responces.add("Let's play that funky music");
+        responces.add("If that's REALLY what you want to hear");
+        responces.add("Coming up soon");
+
+        return responces.get((int)(Math.random()*responces.size()));
+    }
 
     private class PostMessage extends AsyncTask<String,Void , String> { //this is sending a message to host
         protected String doInBackground(String... s) {
@@ -233,10 +320,14 @@ public class homeClient extends ActionBarActivity{
            return ret;
         }
         protected void onPostExecute(String result) {
-            if(result==null)
-                Log.e("p2pmessage","the send resullt was null");
-            else
-                Log.e("p2pmessage","the message was sent");
+            if(result==null) {
+                Log.e("p2pmessage", "the send resullt was null");
+                messageNotSent();
+            }
+            else {
+                sentMessage();
+                Log.e("p2pmessage", "the message was sent");
+            }
         }
     }
 }
