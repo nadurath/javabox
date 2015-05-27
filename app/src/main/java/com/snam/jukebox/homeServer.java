@@ -61,6 +61,7 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
     String songTitle;
     String albumTitle;
     private static ArrayList<Track> maps;
+    private static ArrayList<String> trackURIs;
     WifiP2pManager mManager;
     WifiP2pManager.Channel mChannel;
 
@@ -95,6 +96,8 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
 
 
         ListView listview = (ListView) findViewById(R.id.listView);
+        trackURIs = new ArrayList<>();
+        v = new Vinyl(getApplicationContext(), findViewById(R.id.albumArtwork));
 
 
         if(maps.size()>0) {
@@ -104,6 +107,8 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
 
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         mChannel = mManager.initialize(this, getMainLooper(), null);
+        for(Track d: maps)
+                trackURIs.add(d.uri);
 
         //startRegistration();
     registerService();
@@ -159,6 +164,12 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
         //changeArt(BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.record3));
         //System.out.println("add " + maps.get(0).uri + " to queue");
         //mReceiver.requestPeers();
+        try {
+            new GetArt().execute(new URL(maps.get(0).album.images.get(0).url));
+            Log.i("getArt","called");
+        } catch (MalformedURLException m) {
+            Log.e("URL", "bad album image URL");
+        }
     }
 
     public void brodcastMessage(View view)
@@ -306,13 +317,13 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
     public void playTrack(){//plays item 0 in maps
         Log.d("player","playtrack called");
         if(maps.size()>0) {
-            mPlayer.play(maps.get(0).uri);
-//            try {
-//                //new GetArt().execute(new URL(maps.get(0).album.images.get(0).url));
-//                Log.i("getArt","called");
-//            } catch (MalformedURLException m) {
-//                Log.e("URL", "bad album image URL");
-//            }
+            mPlayer.play(trackURIs);
+            try {
+                new GetArt().execute(new URL(maps.get(0).album.images.get(0).url));
+                Log.i("getArt","called");
+            } catch (MalformedURLException m) {
+                Log.e("URL", "bad album image URL");
+            }
             Track t = maps.get(0);
             songTitle = t.name;
             artist = t.artists.get(0).name;
@@ -329,8 +340,10 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
     }
     public void skip(View view){playNext();}//take a guess as to what these two do
     public void playNext(){
-        if(maps.size()>0)
+        if(maps.size()>0) {
             maps.remove(0);
+            trackURIs.remove(0);
+        }
         playTrack();
         ListView listview = (ListView) findViewById(R.id.listView);
         SongAdapter adapter = new SongAdapter(this, R.layout.song_cell, maps);
@@ -340,8 +353,16 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
     public void addTrack(Track track) {
         if (track != null) {
             maps.add(track);
-            if (maps.size() == 1)
+            trackURIs.add(track.uri);
+            if (maps.size() == 1) {
                 playTrack();//if we just added the only song
+                try {
+                    new GetArt().execute(new URL(maps.get(0).album.images.get(0).url));
+                    Log.i("getArt","called");
+                } catch (MalformedURLException m) {
+                    Log.e("URL", "bad album image URL");
+                }
+            }
             ListView listview = (ListView) findViewById(R.id.listView);
             SongAdapter adapter = new SongAdapter(this, R.layout.song_cell, maps);
             listview.setAdapter(adapter);
@@ -377,10 +398,45 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
     public void onPlaybackEvent(EventType eventType, PlayerState playerState){
         Log.d("home class", "Playback event received: " + eventType.name());
         Log.d("home class", "Plaayer state: " + playerState.playing);
-        if(eventType.equals(EventType.BECAME_INACTIVE))
-        {
-            playNext();
 
+        if(eventType.equals(EventType.TRACK_CHANGED) && maps.size() > 1) {
+            if(!playerState.playing) {
+                trackURIs.remove(0);
+                TextView songView = (TextView) findViewById(R.id.songTitle);
+                songView.setText(maps.get(0).name);
+                TextView artistView = (TextView) findViewById(R.id.artist);
+                artistView.setText(maps.get(0).artists.get(0).name);
+                TextView albumView = (TextView) findViewById(R.id.albumTitle);
+                albumView.setText(maps.get(0).album.name);
+                ListView listview = (ListView) findViewById(R.id.listView);
+                SongAdapter adapter = new SongAdapter(this, R.layout.song_cell, maps);
+                listview.setAdapter(adapter);
+                try {
+                    new GetArt().execute(new URL(maps.get(0).album.images.get(0).url));
+                    Log.i("getArt","called");
+                } catch (MalformedURLException m) {
+                    Log.e("URL", "bad album image URL");
+                }
+                mPlayer.play(trackURIs);
+            }
+            else {
+                maps.remove(0);
+                TextView songView = (TextView) findViewById(R.id.songTitle);
+                songView.setText(maps.get(0).name);
+                TextView artistView = (TextView) findViewById(R.id.artist);
+                artistView.setText(maps.get(0).artists.get(0).name);
+                TextView albumView = (TextView) findViewById(R.id.albumTitle);
+                albumView.setText(maps.get(0).album.name);
+                ListView listview = (ListView) findViewById(R.id.listView);
+                SongAdapter adapter = new SongAdapter(this, R.layout.song_cell, maps);
+                try {
+                    new GetArt().execute(new URL(maps.get(0).album.images.get(0).url));
+                    Log.i("getArt","called");
+                } catch (MalformedURLException m) {
+                    Log.e("URL", "bad album image URL");
+                }
+                listview.setAdapter(adapter);
+            }
         }
     }
 
