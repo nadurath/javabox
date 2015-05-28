@@ -143,15 +143,6 @@ public class homeServer extends Activity implements PlayerNotificationCallback, 
     }
     private WifiP2pConfig config;
     public void changeArt(View view) {
-        //changeArt(BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.record3));
-        //System.out.println("add " + maps.get(0).uri + " to queue");
-        //mReceiver.requestPeers();
-//        try {
-//            new GetArt().execute(new URL(maps.get(0).album.images.get(0).url));
-//            Log.i("getArt","called");
-//        } catch (MalformedURLException m) {
-//            Log.e("URL", "bad album image URL");
-//        }
     }
 
     public void searchAndPlay(String string)//this is called by the serer, right now client sends song title and we go from there
@@ -295,6 +286,8 @@ public class homeServer extends Activity implements PlayerNotificationCallback, 
             albumView.setText(albumTitle);
             if(images!=null&&images.get(t.uri)!=null)
                 v.changeArt(images.get(t.uri));
+            else
+                Log.e("image","no image on playtrack");
         }
         else {
             mPlayer.pause();
@@ -399,8 +392,10 @@ public class homeServer extends Activity implements PlayerNotificationCallback, 
 
     @Override
     public void onPlaybackError(ErrorType errorType, String errorDetails){
+        Log.e("playback",errorType.toString());
         if(errorType.equals(ErrorType.TRACK_UNAVAILABLE)) {
             skip(null);
+            Log.d("reason",errorDetails+" ");
             toastString("Looks like that song wasn't available...");
         }
     }
@@ -455,6 +450,7 @@ public class homeServer extends Activity implements PlayerNotificationCallback, 
                     ret = (mapsS.get(0));
                 if(ret!=null&&ret.uri!=null)
                 {
+                    Log.i("song info",""+ret.available_markets.toString());
                     try{
                     images.put(ret.uri,BitmapFactory.decodeStream(new URL(ret.album.images.get(0).url).openConnection().getInputStream()));
                     }
