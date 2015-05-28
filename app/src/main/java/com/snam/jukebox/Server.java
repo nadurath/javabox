@@ -58,7 +58,7 @@ public class Server extends AsyncTask<String,Void , String>{
         if (result != null) {
             //Intent intent = new Intent();
             //context.startActivity(intent);
-            ((homeServer)activity).toastString(result);
+            //((homeServer)activity).toastString(result);
             Log.d("DATA", result);
             ((homeServer)activity).searchAndPlay(result);
         }

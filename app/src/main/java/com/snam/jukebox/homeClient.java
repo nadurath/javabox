@@ -160,6 +160,8 @@ public class homeClient extends Activity {
             else
                 new PostMessage().execute(message);
         }
+        else
+            Log.e("error","message is not full or is nothing :"+message);
     }
     public void sentMessage()
     {

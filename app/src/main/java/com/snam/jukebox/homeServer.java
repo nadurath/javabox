@@ -1,5 +1,6 @@
 package com.snam.jukebox;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -48,7 +49,7 @@ import kaaes.spotify.webapi.android.models.Track;
 import kaaes.spotify.webapi.android.models.TracksPager;
 import retrofit.RetrofitError;
 
-public class homeServer extends ActionBarActivity implements PlayerNotificationCallback, ConnectionStateCallback {
+public class homeServer extends Activity implements PlayerNotificationCallback, ConnectionStateCallback {
 
 
     private static final String CLIENT_ID = "3e21eec6f57e4f6a9a2446c1beeb2051";
@@ -129,25 +130,6 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
         new Server(this).execute("HELLO");//every time the server gets a message it closes, so this reopens it. This is actually on purpose though
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_home, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-
     public static void onSelectItem(Context context, String songChoice){
         System.out.println("add " + songChoice + " to queue");
     }
@@ -161,20 +143,6 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
     }
     private WifiP2pConfig config;
     public void changeArt(View view) {
-        //changeArt(BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.record3));
-        //System.out.println("add " + maps.get(0).uri + " to queue");
-        //mReceiver.requestPeers();
-        try {
-            new GetArt().execute(new URL(maps.get(0).album.images.get(0).url));
-            Log.i("getArt","called");
-        } catch (MalformedURLException m) {
-            Log.e("URL", "bad album image URL");
-        }
-    }
-
-    public void brodcastMessage(View view)
-    {
-
     }
 
     public void searchAndPlay(String string)//this is called by the serer, right now client sends song title and we go from there
@@ -208,18 +176,6 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
     @Override
     protected void onStop() {
         Log.i("onStop", "onstop called");
-        if (mManager != null && mChannel != null) {
-            mManager.removeGroup(mChannel, new WifiP2pManager.ActionListener() {
-                @Override
-                public void onFailure(int reasonCode) {
-                    Log.d("stopped", "Disconnect failed. Reason :" + reasonCode);
-                }
-
-                @Override
-                public void onSuccess() {
-                }
-            });
-        }
         super.onStop();
     }
     String token;
@@ -317,13 +273,7 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
     public void playTrack(){//plays item 0 in maps
         Log.d("player","playtrack called");
         if(maps.size()>0) {
-            mPlayer.play(trackURIs);
-            try {
-                new GetArt().execute(new URL(maps.get(0).album.images.get(0).url));
-                Log.i("getArt","called");
-            } catch (MalformedURLException m) {
-                Log.e("URL", "bad album image URL");
-            }
+            mPlayer.play(maps.get(0).uri);
             Track t = maps.get(0);
             songTitle = t.name;
             artist = t.artists.get(0).name;
@@ -334,11 +284,25 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
             artistView.setText(artist);
             TextView albumView = (TextView) findViewById(R.id.albumTitle);
             albumView.setText(albumTitle);
+            if(images!=null&&images.get(t.uri)!=null)
+                v.changeArt(images.get(t.uri));
+            else
+                Log.e("image","no image on playtrack");
         }
-        else
+        else {
             mPlayer.pause();
+            v.stop();
+        }
     }
-    public void skip(View view){playNext();}//take a guess as to what these two do
+    public void skip(View view) {
+        if (maps.size() > 0) {
+            maps.remove(0);
+            playTrack();
+        }
+        ListView listview = (ListView) findViewById(R.id.listView);
+        SongAdapter adapter = new SongAdapter(this, R.layout.song_cell, maps);
+        listview.setAdapter(adapter);//take a guess as to what these two do
+    }
     public void playNext(){
         if(maps.size()>0) {
             maps.remove(0);
@@ -353,16 +317,9 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
     public void addTrack(Track track) {
         if (track != null) {
             maps.add(track);
+            if(maps.size()==1)
+                playTrack();
             trackURIs.add(track.uri);
-            if (maps.size() == 1) {
-                playTrack();//if we just added the only song
-                try {
-                    new GetArt().execute(new URL(maps.get(0).album.images.get(0).url));
-                    Log.i("getArt","called");
-                } catch (MalformedURLException m) {
-                    Log.e("URL", "bad album image URL");
-                }
-            }
             ListView listview = (ListView) findViewById(R.id.listView);
             SongAdapter adapter = new SongAdapter(this, R.layout.song_cell, maps);
             listview.setAdapter(adapter);
@@ -399,50 +356,48 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
         Log.d("home class", "Playback event received: " + eventType.name());
         Log.d("home class", "Plaayer state: " + playerState.playing);
 
-        if(eventType.equals(EventType.TRACK_CHANGED) && maps.size() > 1) {
-            if(!playerState.playing) {
-                trackURIs.remove(0);
-                TextView songView = (TextView) findViewById(R.id.songTitle);
-                songView.setText(maps.get(0).name);
-                TextView artistView = (TextView) findViewById(R.id.artist);
-                artistView.setText(maps.get(0).artists.get(0).name);
-                TextView albumView = (TextView) findViewById(R.id.albumTitle);
-                albumView.setText(maps.get(0).album.name);
-                ListView listview = (ListView) findViewById(R.id.listView);
-                SongAdapter adapter = new SongAdapter(this, R.layout.song_cell, maps);
-                listview.setAdapter(adapter);
-                try {
-                    new GetArt().execute(new URL(maps.get(0).album.images.get(0).url));
-                    Log.i("getArt","called");
-                } catch (MalformedURLException m) {
-                    Log.e("URL", "bad album image URL");
-                }
-                mPlayer.play(trackURIs);
+
+        if(eventType.equals(EventType.END_OF_CONTEXT) && maps.size() > 1) {
+            maps.remove(0);
+            TextView songView = (TextView) findViewById(R.id.songTitle);
+            songView.setText(maps.get(0).name);
+            TextView artistView = (TextView) findViewById(R.id.artist);
+            artistView.setText(maps.get(0).artists.get(0).name);
+            TextView albumView = (TextView) findViewById(R.id.albumTitle);
+            albumView.setText(maps.get(0).album.name);
+            ListView listview = (ListView) findViewById(R.id.listView);
+            SongAdapter adapter = new SongAdapter(this, R.layout.song_cell, maps);
+            listview.setAdapter(adapter);
+            try {
+                new GetArt().execute(new URL(maps.get(0).album.images.get(0).url));
+                Log.i("getArt", "called");
+            } catch (MalformedURLException m) {
+                Log.e("URL", "bad album image URL");
             }
-            else {
-                maps.remove(0);
-                TextView songView = (TextView) findViewById(R.id.songTitle);
-                songView.setText(maps.get(0).name);
-                TextView artistView = (TextView) findViewById(R.id.artist);
-                artistView.setText(maps.get(0).artists.get(0).name);
-                TextView albumView = (TextView) findViewById(R.id.albumTitle);
-                albumView.setText(maps.get(0).album.name);
-                ListView listview = (ListView) findViewById(R.id.listView);
-                SongAdapter adapter = new SongAdapter(this, R.layout.song_cell, maps);
-                try {
-                    new GetArt().execute(new URL(maps.get(0).album.images.get(0).url));
-                    Log.i("getArt","called");
-                } catch (MalformedURLException m) {
-                    Log.e("URL", "bad album image URL");
-                }
-                listview.setAdapter(adapter);
-            }
+            mPlayer.play(maps.get(0).uri);
+        }
+        else if(eventType.equals(EventType.END_OF_CONTEXT)){
+            maps.remove(0);
+            TextView songView = (TextView) findViewById(R.id.songTitle);
+            songView.setText("");
+            TextView artistView = (TextView) findViewById(R.id.artist);
+            artistView.setText("");
+            TextView albumView = (TextView) findViewById(R.id.albumTitle);
+            albumView.setText("");
+            ListView listview = (ListView) findViewById(R.id.listView);
+            SongAdapter adapter = new SongAdapter(this, R.layout.song_cell, maps);
+            listview.setAdapter(adapter);
         }
     }
 
     @Override
     public void onPlaybackError(ErrorType errorType, String errorDetails){
-        Log.d("home class", "Playback error received: " + errorType.name());
+        Log.e("playback",errorType.toString());
+        if(errorType.equals(ErrorType.TRACK_UNAVAILABLE)) {
+            skip(null);
+            Log.d("reason",errorDetails+" ");
+            toastString("Looks like that song wasn't available...");
+        }
     }
 
     @Override
@@ -470,8 +425,9 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
                 Log.e("art","the art was null");
         }
     }
-
+    Map<String,Bitmap> images = new HashMap<>();
     private class Search extends AsyncTask<String,Void , Track> {
+        String search;
      //this is the searching function again, I stole it from the other class for testing things
         protected Track doInBackground(String... string) {         //this version is not really to be used, and plays immediatly
             if(token == null)
@@ -481,6 +437,7 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
             SpotifyApi api = new SpotifyApi();
             api.setAccessToken(token);
             //Log.d("search",token);
+            search = string[0];
             Track ret = new Track();
             ArrayList<Track> mapsS = new ArrayList<>();
             SpotifyService spotify = api.getService();
@@ -491,15 +448,31 @@ public class homeServer extends ActionBarActivity implements PlayerNotificationC
                 }
                 if(mapsS.size()>1)
                     ret = (mapsS.get(0));
+                if(ret!=null&&ret.uri!=null)
+                {
+                    Log.i("song info",""+ret.available_markets.toString());
+                    try{
+                    images.put(ret.uri,BitmapFactory.decodeStream(new URL(ret.album.images.get(0).url).openConnection().getInputStream()));
+                    }
+                    catch(Exception e)
+                    {
+                        Log.e("SearchImage","error getting image");
+                    }
+                }
             } catch (RetrofitError error) {
                 SpotifyError spotifyError = SpotifyError.fromRetrofitError(error);
                 Log.e("api",spotifyError.toString());
 
             }
+            if(ret.uri==null)
+                ret = null;
             return ret;
         }
         protected void onPostExecute(Track result) {
-            addTrack(result);
+            if(result!=null&&result.uri!=null)
+                addTrack(result);
+            else
+                toastString(search+" was requested but no songs were found:(");
         }
     }
 }

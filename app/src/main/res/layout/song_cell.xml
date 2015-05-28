@@ -60,17 +60,5 @@
     android:layout_alignParentEnd="true"
     android:src="@drawable/nope"/>-->
 
-    <TextView
-        android:textColor="#FFFFFF"
-        android:text="100"
-        android:layout_alignTop="@+id/title"
-        android:layout_alignBottom="@+id/album"
-        android:scaleType="fitXY"
-        android:layout_alignParentRight="true"
-        android:layout_width="40dp"
-        android:layout_height="wrap_content"
-        android:id="@+id/idk"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentEnd="true" />
 
 </RelativeLayout>
