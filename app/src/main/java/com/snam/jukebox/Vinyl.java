@@ -108,9 +108,27 @@ public class Vinyl {
         unArt = x;
         Bitmap art = unArt.copy(Bitmap.Config.ARGB_8888, true);
         art = Bitmap.createScaledBitmap(art,record.getWidth(), record.getHeight(),false);
-        new Decorate().execute(art);
+        decorate(art);
     }
 
+    public void stop()
+    {
+        view.clearAnimation();
+    }
+    private void decorate(Bitmap b)
+    {
+
+        int[] pixels = new int[record.getHeight() * record.getWidth()];
+        record.getPixels(pixels, 0, record.getWidth(), 0, 0, record.getWidth(), record.getHeight());
+        int[] artPixels = new int[b.getHeight() * b.getWidth()];
+        b.getPixels(artPixels, 0, b.getWidth(), 0, 0, b.getWidth(), b.getHeight());
+        for (int i = 0; i < pixels.length; i++)
+            if (Color.green(pixels[i]) > 5 && Color.blue(pixels[i]) < 90 && Color.red(pixels[i]) < 90)
+                pixels[i] = Color.argb(Color.alpha(pixels[i]), Color.red(artPixels[i]), Color.green(artPixels[i]), Color.blue(artPixels[i]));
+        record.setPixels(pixels, 0, record.getWidth(), 0, 0, record.getWidth(), record.getHeight());
+        art = record;
+        animate();
+    }
 
     private class Decorate extends AsyncTask<Bitmap, Void,Bitmap> {//auth
 
